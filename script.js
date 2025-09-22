@@ -9,15 +9,38 @@ class SentinelaDashboard {
             timestamps: []
         };
         this.maxDataPoints = 20;
-        
-        // Simulate cloud connection configuration
-        this.config = {
-            apiEndpoint: '/api/sentinela', // Replace with actual cloud endpoint
-            updateInterval: 5000, // 5 seconds
-            reconnectInterval: 10000 // 10 seconds
-        };
-        
-        this.init();
+
+        // Carregar configurações do config.json
+        this.config = {};
+        this.loadConfig().then(() => {
+            this.init();
+        });
+    }
+    async loadConfig() {
+        // Carrega config.json
+        try {
+            const response = await fetch('config.json');
+            if (response.ok) {
+                const config = await response.json();
+                this.config = config.dashboard || {};
+                this.confluentCloud = config.confluentCloud || {};
+            } else {
+                console.error('Erro ao carregar config.json');
+            }
+        } catch (err) {
+            console.error('Erro ao buscar config.json:', err);
+        }
+    }
+    async connectKafka() {
+        // Exemplo de inicialização de conexão Kafka (browser não suporta nativamente)
+        // Para produção, use backend Node.js ou serviço intermediário
+        if (!this.confluentCloud) {
+            console.warn('Configuração do Confluent Cloud não encontrada.');
+            return;
+        }
+        // Exibe dados de configuração para debug
+        console.log('Confluent Cloud:', this.confluentCloud);
+        // Aqui você pode chamar um backend que consome Kafka e expõe via WebSocket/REST
     }
 
     init() {
@@ -366,9 +389,11 @@ class SentinelaDashboard {
 // Initialize dashboard when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const dashboard = new SentinelaDashboard();
-    
-    // Make dashboard globally accessible for debugging
     window.sentinelaDashboard = dashboard;
+    // Exemplo: iniciar conexão Kafka após carregar config
+    setTimeout(() => {
+        dashboard.connectKafka();
+    }, 2000);
 });
 
 // Service Worker registration for offline functionality (optional)

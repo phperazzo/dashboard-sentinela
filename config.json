@@ -5,7 +5,7 @@
   "cloud": {
     "apiEndpoint": "https://api.sentinela.cloud/v1",
     "websocketEndpoint": "wss://ws.sentinela.cloud/v1",
-    "apiKey": "YOUR_API_KEY_HERE",
+    "apiKey": "P2BAN4ISVLWKI7KE",
     "deviceId": "SENTINELA_DEVICE_ID"
   },
   "dashboard": {
@@ -37,5 +37,11 @@
     "historicalData": true,
     "notifications": true,
     "exportData": true
+  },
+  "confluentCloud": {
+    "apiKey": "P2BAN4ISVLWKI7KE",
+    "apiSecret": "cfltqplhV3yPe6W9VuRWPZzj8WNpnPaMnW+sO1qt83NYlXkN40J0eu6eo6WYZygQ",
+    "resource": "lkc-29d6ky",
+    "bootstrapServer": "pkc-ldjyd.southamerica-east1.gcp.confluent.cloud:9092"
   }
 }
