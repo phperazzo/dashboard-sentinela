@@ -1,0 +1,41 @@
+{
+  "name": "Dashboard Sentinela",
+  "version": "1.0.0",
+  "description": "Dashboard para monitoramento do hardware Sentinela via nuvem",
+  "cloud": {
+    "apiEndpoint": "https://api.sentinela.cloud/v1",
+    "websocketEndpoint": "wss://ws.sentinela.cloud/v1",
+    "apiKey": "YOUR_API_KEY_HERE",
+    "deviceId": "SENTINELA_DEVICE_ID"
+  },
+  "dashboard": {
+    "updateInterval": 5000,
+    "maxDataPoints": 50,
+    "chartRefreshRate": 1000,
+    "reconnectDelay": 10000
+  },
+  "thresholds": {
+    "temperature": {
+      "min": 0,
+      "max": 40,
+      "warningMin": 10,
+      "warningMax": 30
+    },
+    "humidity": {
+      "min": 30,
+      "max": 80
+    },
+    "voltage": {
+      "min": 200,
+      "max": 240,
+      "warningMin": 210,
+      "warningMax": 230
+    }
+  },
+  "features": {
+    "realTimeUpdates": true,
+    "historicalData": true,
+    "notifications": true,
+    "exportData": true
+  }
+}

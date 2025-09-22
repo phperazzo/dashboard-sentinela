@@ -1,0 +1,373 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Styles */
+.dashboard-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dashboard-header h1 {
+    color: #2c3e50;
+    font-size: 2.5em;
+    font-weight: 700;
+}
+
+.dashboard-header h1 i {
+    color: #3498db;
+    margin-right: 15px;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.connection-status.disconnected {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* Main Content */
+.dashboard-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-left: 5px solid;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+}
+
+.temperature-card {
+    border-left-color: #e74c3c;
+}
+
+.humidity-card {
+    border-left-color: #3498db;
+}
+
+.voltage-card {
+    border-left-color: #f39c12;
+}
+
+.ethernet-card {
+    border-left-color: #27ae60;
+}
+
+.metric-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.metric-header i {
+    font-size: 1.8em;
+    width: 40px;
+    text-align: center;
+}
+
+.temperature-card .metric-header i {
+    color: #e74c3c;
+}
+
+.humidity-card .metric-header i {
+    color: #3498db;
+}
+
+.voltage-card .metric-header i {
+    color: #f39c12;
+}
+
+.ethernet-card .metric-header i {
+    color: #27ae60;
+}
+
+.metric-header h3 {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.metric-value {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.metric-value .value {
+    font-size: 3em;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.metric-value .unit {
+    font-size: 1.2em;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.metric-status {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: 500;
+    text-align: center;
+}
+
+.metric-status.normal {
+    background: #d4edda;
+    color: #155724;
+}
+
+.metric-status.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.metric-status.danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Voltage Variation */
+.voltage-variation {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    font-size: 0.95em;
+    color: #495057;
+}
+
+/* Ethernet Status */
+.ethernet-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.status-indicator {
+    font-size: 1.5em;
+}
+
+.status-indicator.connected {
+    color: #28a745;
+}
+
+.status-indicator.disconnected {
+    color: #dc3545;
+}
+
+.status-indicator.warning {
+    color: #ffc107;
+}
+
+.ethernet-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-item {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: #495057;
+}
+
+/* Charts Section */
+.charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 25px;
+}
+
+.chart-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.chart-container h3 i {
+    color: #3498db;
+}
+
+canvas {
+    max-width: 100%;
+    height: 300px !important;
+}
+
+/* Footer */
+.dashboard-footer {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 30px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    color: #7f8c8d;
+}
+
+.dashboard-footer p {
+    margin: 5px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 15px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 2em;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        min-width: 0;
+    }
+    
+    .metric-value .value {
+        font-size: 2.5em;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-header h1 {
+        font-size: 1.8em;
+    }
+    
+    .metric-value .value {
+        font-size: 2em;
+    }
+    
+    .metric-card {
+        padding: 20px;
+    }
+    
+    .chart-container {
+        padding: 20px;
+    }
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.loading {
+    animation: pulse 2s infinite;
+}
+
+/* Status animations */
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0.3;
+    }
+}
+
+.status-indicator.blinking {
+    animation: blink 1s infinite;
+}

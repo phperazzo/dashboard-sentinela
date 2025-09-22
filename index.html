@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sentinela</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome icons via CSS -->
+    <style>
+        /* Simple icon replacements */
+        .fas.fa-shield-alt::before { content: "🛡️"; }
+        .fas.fa-wifi::before { content: "📶"; }
+        .fas.fa-wifi-slash::before { content: "📵"; }
+        .fas.fa-thermometer-half::before { content: "🌡️"; }
+        .fas.fa-tint::before { content: "💧"; }
+        .fas.fa-bolt::before { content: "⚡"; }
+        .fas.fa-ethernet::before { content: "🌐"; }
+        .fas.fa-circle::before { content: "●"; }
+        .fas.fa-chart-line::before { content: "📈"; }
+        .fas.fa-chart-area::before { content: "📊"; }
+        .fas { font-style: normal; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1><i class="fas fa-shield-alt"></i> Dashboard Sentinela</h1>
+            <div class="connection-status" id="connectionStatus">
+                <i class="fas fa-wifi"></i>
+                <span>Conectando...</span>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <div class="metrics-grid">
+                <!-- Temperature Card -->
+                <div class="metric-card temperature-card">
+                    <div class="metric-header">
+                        <i class="fas fa-thermometer-half"></i>
+                        <h3>Temperatura</h3>
+                    </div>
+                    <div class="metric-value">
+                        <span class="value" id="temperature">--</span>
+                        <span class="unit">°C</span>
+                    </div>
+                    <div class="metric-status" id="temperatureStatus">
+                        <span class="status-text">Aguardando dados...</span>
+                    </div>
+                </div>
+
+                <!-- Humidity Card -->
+                <div class="metric-card humidity-card">
+                    <div class="metric-header">
+                        <i class="fas fa-tint"></i>
+                        <h3>Umidade</h3>
+                    </div>
+                    <div class="metric-value">
+                        <span class="value" id="humidity">--</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="metric-status" id="humidityStatus">
+                        <span class="status-text">Aguardando dados...</span>
+                    </div>
+                </div>
+
+                <!-- Voltage Card -->
+                <div class="metric-card voltage-card">
+                    <div class="metric-header">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Tensão da Rede</h3>
+                    </div>
+                    <div class="metric-value">
+                        <span class="value" id="voltage">--</span>
+                        <span class="unit">V</span>
+                    </div>
+                    <div class="metric-status" id="voltageStatus">
+                        <span class="status-text">Aguardando dados...</span>
+                    </div>
+                    <div class="voltage-variation">
+                        <span>Variação: <span id="voltageVariation">--</span>%</span>
+                    </div>
+                </div>
+
+                <!-- Ethernet Status Card -->
+                <div class="metric-card ethernet-card">
+                    <div class="metric-header">
+                        <i class="fas fa-ethernet"></i>
+                        <h3>Rede Ethernet</h3>
+                    </div>
+                    <div class="ethernet-status" id="ethernetStatus">
+                        <div class="status-indicator" id="ethernetIndicator">
+                            <i class="fas fa-circle"></i>
+                        </div>
+                        <span class="status-text" id="ethernetText">Verificando...</span>
+                    </div>
+                    <div class="ethernet-details">
+                        <div class="detail-item">
+                            <span>IP: <span id="ethernetIP">--</span></span>
+                        </div>
+                        <div class="detail-item">
+                            <span>Velocidade: <span id="ethernetSpeed">--</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-line"></i> Histórico de Temperatura</h3>
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-area"></i> Histórico de Umidade</h3>
+                    <canvas id="humidityChart"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>Última atualização: <span id="lastUpdate">--</span></p>
+            <p>Sistema Sentinela v1.0</p>
+        </footer>
+    </div>
+
+    <!-- Simple Chart.js alternative -->
+    <script>
+        // Simple Chart.js fallback
+        if (typeof Chart === 'undefined') {
+            window.Chart = function(ctx, config) {
+                this.data = config.data;
+                this.update = function() {};
+                
+                // Create a simple visual representation
+                const canvas = ctx.canvas;
+                canvas.style.background = '#f8f9fa';
+                canvas.style.border = '1px solid #dee2e6';
+                canvas.style.borderRadius = '8px';
+                
+                // Add simple text
+                const context = ctx;
+                context.font = '16px Arial';
+                context.fillStyle = '#6c757d';
+                context.textAlign = 'center';
+                context.fillText('Gráfico carregando...', canvas.width/2, canvas.height/2);
+            };
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
