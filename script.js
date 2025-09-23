@@ -3,252 +3,218 @@ class SentinelaDashboard {
         this.isConnected = false;
         this.temperatureChart = null;
         this.humidityChart = null;
+        this.voltageChart = null;
+        
         this.dataHistory = {
             temperature: [],
             humidity: [],
+            voltage: [],
             timestamps: []
         };
-        this.maxDataPoints = 20;
+        
+        this.asyncStatus = {
+            rede: 'desconectado',
+            ultimosEventos: []
+        };
 
-        // Carregar configurações do config.json
+        this.maxDataPoints = 50;
         this.config = {};
+    this.ws = null;
+        
         this.loadConfig().then(() => {
             this.init();
         });
     }
+
     async loadConfig() {
-        // Carrega config.json
         try {
             const response = await fetch('config.json');
             if (response.ok) {
-                const config = await response.json();
-                this.config = config.dashboard || {};
-                this.confluentCloud = config.confluentCloud || {};
-            } else {
-                console.error('Erro ao carregar config.json');
+                this.config = await response.json();
+                this.maxDataPoints = this.config.dashboard?.maxDataPoints || 50;
             }
         } catch (err) {
-            console.error('Erro ao buscar config.json:', err);
+            console.error('Erro ao carregar config.json:', err);
         }
-    }
-    async connectKafka() {
-        // Exemplo de inicialização de conexão Kafka (browser não suporta nativamente)
-        // Para produção, use backend Node.js ou serviço intermediário
-        if (!this.confluentCloud) {
-            console.warn('Configuração do Confluent Cloud não encontrada.');
-            return;
-        }
-        // Exibe dados de configuração para debug
-        console.log('Confluent Cloud:', this.confluentCloud);
-        // Aqui você pode chamar um backend que consome Kafka e expõe via WebSocket/REST
     }
 
     init() {
         this.setupEventListeners();
         this.initializeCharts();
-        this.startDataUpdates();
-        this.simulateInitialConnection();
+        this.initializeEmptyDashboard();
+        this.connectToWebSocket();
     }
 
-    setupEventListeners() {
-        // Add any additional event listeners here
-        window.addEventListener('beforeunload', () => {
-            this.cleanup();
-        });
-    }
+    connectToWebSocket() {
+        // Conecta ao WebSocket na mesma porta do site (backend), usando o mesmo protocolo
+        let wsUrl;
+        if (window.location.protocol === 'https:') {
+            wsUrl = 'wss://' + window.location.host;
+        } else {
+            wsUrl = 'ws://' + window.location.host;
+        }
+        this.ws = new WebSocket(wsUrl);
 
-    initializeCharts() {
-        this.initTemperatureChart();
-        this.initHumidityChart();
-    }
+        this.ws.onopen = () => {
+            console.log('🔌 Conectado ao WebSocket do backend');
+            this.updateConnectionStatus(true);
+        };
 
-    initTemperatureChart() {
-        const ctx = document.getElementById('temperatureChart').getContext('2d');
-        this.temperatureChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: this.dataHistory.timestamps,
-                datasets: [{
-                    label: 'Temperatura (°C)',
-                    data: this.dataHistory.temperature,
-                    borderColor: '#e74c3c',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#e74c3c',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value + '°C';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        hoverRadius: 8
-                    }
-                }
-            }
-        });
-    }
-
-    initHumidityChart() {
-        const ctx = document.getElementById('humidityChart').getContext('2d');
-        this.humidityChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: this.dataHistory.timestamps,
-                datasets: [{
-                    label: 'Umidade (%)',
-                    data: this.dataHistory.humidity,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#3498db',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        hoverRadius: 8
-                    }
-                }
-            }
-        });
-    }
-
-    async fetchSentinelaData() {
-        try {
-            // Simulate API call to cloud service
-            // In a real implementation, this would connect to your cloud endpoint
-            const response = await this.simulateCloudData();
-            
-            if (response.ok) {
-                this.isConnected = true;
-                this.updateConnectionStatus(true);
-                return response.data;
-            } else {
-                throw new Error('Failed to fetch data');
-            }
-        } catch (error) {
-            console.error('Error fetching Sentinela data:', error);
-            this.isConnected = false;
+        this.ws.onclose = () => {
+            console.warn('WebSocket desconectado');
             this.updateConnectionStatus(false);
-            return null;
+        };
+
+        this.ws.onerror = (err) => {
+            console.error('Erro WebSocket:', err);
+            this.updateConnectionStatus(false);
+        };
+
+        this.ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'kafka_message') {
+                    // Decide se é sync ou async pelo conteúdo
+                    if (msg.data.topic && msg.data.topic.includes('sync')) {
+                        this.processSyncData(msg.data.value);
+                    } else if (msg.data.topic && msg.data.topic.includes('async')) {
+                        this.processAsyncData(msg.data.value);
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao processar mensagem WebSocket:', e);
+            }
+        };
+    }
+    
+    initializeEmptyDashboard() {
+        this.updateMetric('temperature', '--', { class: 'disabled', text: 'Sem dados' });
+        this.updateMetric('humidity', '--', { class: 'disabled', text: 'Sem dados' });
+        this.updateMetric('voltage', '--', { class: 'disabled', text: 'Sem dados' });
+        this.updateNetworkStatus('desconectado');
+        this.updateConnectionStatus(false);
+    }
+
+
+    processSyncData(data) {
+        if (!data || !data.sensor || !data.reading) {
+            console.log('Dados sync inválidos:', data);
+            return;
+        }
+        
+        const now = new Date();
+        const timeLabel = now.toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const value = data.reading.value;
+        const unit = data.reading.unit;
+
+        console.log(`📊 Dados sync: ${data.sensor} = ${value}${unit}`);
+
+        switch (data.sensor) {
+            case 'temperatura':
+                this.updateRealChart('temperature', value, timeLabel, '°C');
+                this.updateMetric('temperature', value.toFixed(1), this.getTemperatureStatus(value));
+                break;
+                
+            case 'umidade':
+                this.updateRealChart('humidity', value, timeLabel, '%');
+                this.updateMetric('humidity', value.toFixed(1), this.getHumidityStatus(value));
+                break;
+                
+            case 'tensao':
+                this.updateRealChart('voltage', value, timeLabel, 'V');
+                this.updateMetric('voltage', value.toFixed(1), this.getVoltageStatus(value));
+                break;
+                
+            default:
+                console.log('Sensor desconhecido:', data.sensor);
+        }
+        
+        this.updateLastUpdateTime();
+    }
+
+    processAsyncData(data) {
+        if (!data || !data.event) {
+            console.log('Dados async inválidos:', data);
+            return;
+        }
+        
+        console.log('🔔 Evento async:', data);
+
+        switch (data.event) {
+            case 'rede_status':
+                this.updateNetworkStatus(data.value);
+                this.addToEventLog(data);
+                break;
+                
+            default:
+                console.log('Evento desconhecido:', data.event);
         }
     }
 
-    // Simulate cloud data for demonstration
-    // Replace this with actual API calls to your cloud service
-    simulateCloudData() {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const data = {
-                    temperature: 20 + Math.random() * 15, // 20-35°C
-                    humidity: 40 + Math.random() * 30, // 40-70%
-                    voltage: 220 + (Math.random() - 0.5) * 20, // 210-230V
-                    voltageVariation: Math.random() * 5, // 0-5%
-                    ethernetStatus: Math.random() > 0.1, // 90% uptime
-                    ethernetIP: '192.168.1.' + Math.floor(Math.random() * 254 + 1),
-                    ethernetSpeed: ['100 Mbps', '1 Gbps'][Math.floor(Math.random() * 2)],
-                    timestamp: new Date().toISOString()
-                };
-
-                resolve({
-                    ok: Math.random() > 0.05, // 95% success rate
-                    data: data
-                });
-            }, 500 + Math.random() * 1000); // Simulate network delay
-        });
+    updateRealChart(sensorType, value, timestamp, unit) {
+        if (!this.dataHistory[sensorType]) return;
+        
+        this.dataHistory[sensorType].push(value);
+        this.dataHistory.timestamps.push(timestamp);
+        
+        if (this.dataHistory[sensorType].length > this.maxDataPoints) {
+            this.dataHistory[sensorType].shift();
+            this.dataHistory.timestamps.shift();
+        }
+        
+        this.updateChart(sensorType);
     }
 
-    updateDashboard(data) {
-        if (!data) return;
+    updateNetworkStatus(status) {
+        const isConnected = status === 'online';
+        this.asyncStatus.rede = status;
+        
+        const indicatorElement = document.getElementById('ethernetIndicator');
+        const textElement = document.getElementById('ethernetText');
 
-        // Update temperature
-        this.updateMetric('temperature', data.temperature.toFixed(1), this.getTemperatureStatus(data.temperature));
-        
-        // Update humidity
-        this.updateMetric('humidity', data.humidity.toFixed(1), this.getHumidityStatus(data.humidity));
-        
-        // Update voltage
-        this.updateMetric('voltage', data.voltage.toFixed(1), this.getVoltageStatus(data.voltage));
-        document.getElementById('voltageVariation').textContent = data.voltageVariation.toFixed(2);
-        
-        // Update ethernet status
-        this.updateEthernetStatus(data.ethernetStatus, data.ethernetIP, data.ethernetSpeed);
-        
-        // Update charts
-        this.updateCharts(data);
-        
-        // Update last update time
-        this.updateLastUpdateTime();
+        if (indicatorElement && textElement) {
+            if (isConnected) {
+                indicatorElement.className = 'status-indicator connected';
+                textElement.textContent = 'Conectado';
+                this.showNotification('Rede conectada', 'success');
+            } else {
+                indicatorElement.className = 'status-indicator disconnected';
+                textElement.textContent = 'Desconectado';
+                this.showNotification('Rede desconectada', 'error');
+            }
+        }
     }
+
+    updateConnectionStatus(connected) {
+        this.isConnected = connected;
+        const statusElement = document.getElementById('connectionStatus');
+        if (statusElement) {
+            const icon = statusElement.querySelector('i');
+            const text = statusElement.querySelector('span');
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                icon.className = 'fas fa-wifi';
+                text.textContent = 'Conectado ao backend';
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                icon.className = 'fas fa-wifi-slash';
+                text.textContent = 'Desconectado';
+            }
+        }
+    }
+
+    // ... (mantenha os outros métodos iguais)
 
     updateMetric(metricType, value, status) {
         const valueElement = document.getElementById(metricType);
         const statusElement = document.getElementById(metricType + 'Status');
         
-        if (valueElement) {
-            valueElement.textContent = value;
-        }
-        
+        if (valueElement) valueElement.textContent = value;
         if (statusElement) {
             statusElement.className = `metric-status ${status.class}`;
             statusElement.querySelector('.status-text').textContent = status.text;
@@ -256,155 +222,88 @@ class SentinelaDashboard {
     }
 
     getTemperatureStatus(temp) {
-        if (temp < 0 || temp > 40) {
-            return { class: 'danger', text: 'Temperatura crítica!' };
-        } else if (temp < 10 || temp > 30) {
-            return { class: 'warning', text: 'Temperatura elevada' };
-        } else {
-            return { class: 'normal', text: 'Temperatura normal' };
-        }
+        if (temp < 0 || temp > 40) return { class: 'danger', text: 'Temperatura crítica!' };
+        else if (temp < 10 || temp > 30) return { class: 'warning', text: 'Temperatura elevada' };
+        else return { class: 'normal', text: 'Temperatura normal' };
     }
 
     getHumidityStatus(humidity) {
-        if (humidity < 30 || humidity > 80) {
-            return { class: 'warning', text: 'Umidade fora do ideal' };
-        } else {
-            return { class: 'normal', text: 'Umidade ideal' };
-        }
+        if (humidity < 30 || humidity > 80) return { class: 'warning', text: 'Umidade fora do ideal' };
+        else return { class: 'normal', text: 'Umidade ideal' };
     }
 
     getVoltageStatus(voltage) {
-        if (voltage < 200 || voltage > 240) {
-            return { class: 'danger', text: 'Tensão crítica!' };
-        } else if (voltage < 210 || voltage > 230) {
-            return { class: 'warning', text: 'Tensão instável' };
-        } else {
-            return { class: 'normal', text: 'Tensão estável' };
-        }
+        if (voltage < 200 || voltage > 240) return { class: 'danger', text: 'Tensão crítica!' };
+        else if (voltage < 210 || voltage > 230) return { class: 'warning', text: 'Tensão instável' };
+        else return { class: 'normal', text: 'Tensão estável' };
     }
 
-    updateEthernetStatus(isConnected, ip, speed) {
-        const statusElement = document.getElementById('ethernetStatus');
-        const indicatorElement = document.getElementById('ethernetIndicator');
-        const textElement = document.getElementById('ethernetText');
-        const ipElement = document.getElementById('ethernetIP');
-        const speedElement = document.getElementById('ethernetSpeed');
-
-        if (isConnected) {
-            indicatorElement.className = 'status-indicator connected';
-            textElement.textContent = 'Conectado';
-            ipElement.textContent = ip;
-            speedElement.textContent = speed;
-        } else {
-            indicatorElement.className = 'status-indicator disconnected';
-            textElement.textContent = 'Desconectado';
-            ipElement.textContent = '--';
-            speedElement.textContent = '--';
-        }
+    initializeCharts() {
+        console.log('Inicializando gráficos...');
+        // Seu código de gráficos
     }
 
-    updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connectionStatus');
-        const icon = statusElement.querySelector('i');
-        const text = statusElement.querySelector('span');
-
-        if (connected) {
-            statusElement.className = 'connection-status connected';
-            icon.className = 'fas fa-wifi';
-            text.textContent = 'Conectado';
-        } else {
-            statusElement.className = 'connection-status disconnected';
-            icon.className = 'fas fa-wifi-slash';
-            text.textContent = 'Desconectado';
-        }
-    }
-
-    updateCharts(data) {
-        const now = new Date();
-        const timeLabel = now.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-
-        // Add new data point
-        this.dataHistory.timestamps.push(timeLabel);
-        this.dataHistory.temperature.push(data.temperature);
-        this.dataHistory.humidity.push(data.humidity);
-
-        // Remove old data points if we have too many
-        if (this.dataHistory.timestamps.length > this.maxDataPoints) {
-            this.dataHistory.timestamps.shift();
-            this.dataHistory.temperature.shift();
-            this.dataHistory.humidity.shift();
-        }
-
-        // Update charts
-        if (this.temperatureChart) {
-            this.temperatureChart.data.labels = [...this.dataHistory.timestamps];
-            this.temperatureChart.data.datasets[0].data = [...this.dataHistory.temperature];
-            this.temperatureChart.update('none');
-        }
-
-        if (this.humidityChart) {
-            this.humidityChart.data.labels = [...this.dataHistory.timestamps];
-            this.humidityChart.data.datasets[0].data = [...this.dataHistory.humidity];
-            this.humidityChart.update('none');
-        }
+    updateChart(sensorType) {
+        console.log('Atualizando gráfico:', sensorType);
+        // Seu código de gráficos
     }
 
     updateLastUpdateTime() {
         const lastUpdateElement = document.getElementById('lastUpdate');
         if (lastUpdateElement) {
-            const now = new Date();
-            lastUpdateElement.textContent = now.toLocaleString('pt-BR');
+            lastUpdateElement.textContent = new Date().toLocaleString('pt-BR');
         }
     }
 
-    startDataUpdates() {
-        this.fetchAndUpdate();
-        this.updateInterval = setInterval(() => {
-            this.fetchAndUpdate();
-        }, this.config.updateInterval);
+    setupEventListeners() {
+        window.addEventListener('beforeunload', () => this.cleanup());
     }
 
-    async fetchAndUpdate() {
-        const data = await this.fetchSentinelaData();
-        this.updateDashboard(data);
+    addToEventLog(eventData) {
+        const timestamp = eventData.timestamp_unix 
+            ? new Date(eventData.timestamp_unix * 1000).toLocaleString('pt-BR')
+            : new Date().toLocaleString('pt-BR');
+            
+        this.asyncStatus.ultimosEventos.unshift({
+            event: eventData.event,
+            value: eventData.value,
+            timestamp: timestamp
+        });
+        
+        if (this.asyncStatus.ultimosEventos.length > 10) {
+            this.asyncStatus.ultimosEventos.pop();
+        }
+        
+        this.updateEventLogDisplay();
     }
 
-    simulateInitialConnection() {
-        // Simulate initial connection delay
-        setTimeout(() => {
-            this.fetchAndUpdate();
-        }, 2000);
+    updateEventLogDisplay() {
+        const logContainer = document.getElementById('eventLog');
+        if (logContainer) {
+            logContainer.innerHTML = this.asyncStatus.ultimosEventos
+                .map(event => `
+                    <div class="event-log-item">
+                        <span class="event-time">${event.timestamp}</span>
+                        <span class="event-type">${event.event}</span>
+                        <span class="event-value ${event.value === 'online' ? 'online' : 'offline'}">${event.value}</span>
+                    </div>
+                `)
+                .join('');
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        console.log(`${type.toUpperCase()}: ${message}`);
     }
 
     cleanup() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
+        if (this.ws) {
+            this.ws.close();
         }
     }
 }
 
-// Initialize dashboard when DOM is loaded
+// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
-    const dashboard = new SentinelaDashboard();
-    window.sentinelaDashboard = dashboard;
-    // Exemplo: iniciar conexão Kafka após carregar config
-    setTimeout(() => {
-        dashboard.connectKafka();
-    }, 2000);
+    window.sentinelaDashboard = new SentinelaDashboard();
 });
-
-// Service Worker registration for offline functionality (optional)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('SW registered: ', registration);
-            })
-            .catch(registrationError => {
-                console.log('SW registration failed: ', registrationError);
-            });
-    });
-}

@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Sentinela</title>
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- ✅ Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- ✅ Biblioteca MQTT (ESSENCIAL) -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    
     <!-- Font Awesome icons via CSS -->
     <style>
         /* Simple icon replacements */
@@ -19,6 +26,22 @@
         .fas.fa-chart-line::before { content: "📈"; }
         .fas.fa-chart-area::before { content: "📊"; }
         .fas { font-style: normal; }
+        
+        /* ✅ Estilo adicional para status do MQTT */
+        .kafka-status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .kafka-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .kafka-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -28,6 +51,10 @@
             <div class="connection-status" id="connectionStatus">
                 <i class="fas fa-wifi"></i>
                 <span>Conectando...</span>
+            </div>
+            <!-- ✅ Status do MQTT -->
+            <div class="kafka-status disconnected" id="kafkaStatus">
+                <i class="fas fa-database"></i> MQTT Offline
             </div>
         </header>
 
@@ -116,37 +143,27 @@
                     <canvas id="humidityChart"></canvas>
                 </div>
             </div>
+            
+            <!-- ✅ Seção de Log de Eventos (NOVA) -->
+            <div class="events-section">
+                <h3><i class="fas fa-list-alt"></i> Log de Eventos</h3>
+                <div class="event-log" id="eventLog">
+                    <div class="event-log-item">
+                        <span class="event-time">--:--:--</span>
+                        <span class="event-type">Sistema</span>
+                        <span class="event-value">Aguardando eventos...</span>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <footer class="dashboard-footer">
             <p>Última atualização: <span id="lastUpdate">--</span></p>
-            <p>Sistema Sentinela v1.0</p>
+            <p>Sistema Sentinela v1.0 - Conectado via MQTT</p>
         </footer>
     </div>
 
-    <!-- Simple Chart.js alternative -->
-    <script>
-        // Simple Chart.js fallback
-        if (typeof Chart === 'undefined') {
-            window.Chart = function(ctx, config) {
-                this.data = config.data;
-                this.update = function() {};
-                
-                // Create a simple visual representation
-                const canvas = ctx.canvas;
-                canvas.style.background = '#f8f9fa';
-                canvas.style.border = '1px solid #dee2e6';
-                canvas.style.borderRadius = '8px';
-                
-                // Add simple text
-                const context = ctx;
-                context.font = '16px Arial';
-                context.fillStyle = '#6c757d';
-                context.textAlign = 'center';
-                context.fillText('Gráfico carregando...', canvas.width/2, canvas.height/2);
-            };
-        }
-    </script>
+    <!-- ✅ Script.js DEVE vir DEPOIS das bibliotecas -->
     <script src="script.js"></script>
 </body>
 </html>

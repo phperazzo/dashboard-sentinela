@@ -1,47 +1,13 @@
 {
-  "name": "Dashboard Sentinela",
-  "version": "1.0.0",
-  "description": "Dashboard para monitoramento do hardware Sentinela via nuvem",
-  "cloud": {
-    "apiEndpoint": "https://api.sentinela.cloud/v1",
-    "websocketEndpoint": "wss://ws.sentinela.cloud/v1",
-    "apiKey": "P2BAN4ISVLWKI7KE",
-    "deviceId": "SENTINELA_DEVICE_ID"
-  },
-  "dashboard": {
-    "updateInterval": 5000,
-    "maxDataPoints": 50,
-    "chartRefreshRate": 1000,
-    "reconnectDelay": 10000
-  },
-  "thresholds": {
-    "temperature": {
-      "min": 0,
-      "max": 40,
-      "warningMin": 10,
-      "warningMax": 30
-    },
-    "humidity": {
-      "min": 30,
-      "max": 80
-    },
-    "voltage": {
-      "min": 200,
-      "max": 240,
-      "warningMin": 210,
-      "warningMax": 230
+  "mqtt": {
+    "host": "34.170.31.196",
+    "port": 1883,
+    "webSocketPort": 9001,
+    "username": "device_001",
+    "password": "IoTDevice2024!",
+    "topics": {
+      "sync": "sentinela/sync",
+      "async": "sentinela/async"
     }
-  },
-  "features": {
-    "realTimeUpdates": true,
-    "historicalData": true,
-    "notifications": true,
-    "exportData": true
-  },
-  "confluentCloud": {
-    "apiKey": "P2BAN4ISVLWKI7KE",
-    "apiSecret": "cfltqplhV3yPe6W9VuRWPZzj8WNpnPaMnW+sO1qt83NYlXkN40J0eu6eo6WYZygQ",
-    "resource": "lkc-29d6ky",
-    "bootstrapServer": "pkc-ldjyd.southamerica-east1.gcp.confluent.cloud:9092"
   }
 }
