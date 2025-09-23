@@ -171,11 +171,23 @@ class SentinelaDashboard {
     }
 
     updateNetworkStatus(status) {
-        const isConnected = status === 'online';
-        this.asyncStatus.rede = status;
-        
+        // Suporte a objeto: status pode ser string ('online'/'offline') ou objeto { value, ip, velocidade }
+        let value = status, ip = '--', velocidade = '--';
+        if (typeof status === 'object' && status !== null) {
+            value = status.value;
+            ip = status.ip || '--';
+            velocidade = status.velocidade || '--';
+        }
+        const isConnected = value === 'online';
+        this.asyncStatus.rede = value;
+
         const indicatorElement = document.getElementById('ethernetIndicator');
         const textElement = document.getElementById('ethernetText');
+        const ipElement = document.getElementById('ethernetIP');
+        const speedElement = document.getElementById('ethernetSpeed');
+
+        if (ipElement) ipElement.textContent = ip;
+        if (speedElement) speedElement.textContent = velocidade;
 
         if (indicatorElement && textElement) {
             if (isConnected) {
