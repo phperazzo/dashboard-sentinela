@@ -40,7 +40,7 @@ class SentinelaDashboard {
 
     async loadConfig() {
         try {
-            const response = await fetch('config.json');
+            const response = await fetch('config.json'); // Mantém apenas o fetch do config.json local
             if (response.ok) {
                 this.config = await response.json();
                 this.maxDataPoints = this.config.dashboard?.maxDataPoints || 50;
@@ -88,17 +88,9 @@ class SentinelaDashboard {
         this.ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
-                if (msg.type === 'kafka_message') {
-                    // Decide se é sync ou async pelo conteúdo
-                    if (msg.data.topic && msg.data.topic.includes('sync')) {
-                        this.processSyncData(msg.data.value);
-                    } else if (msg.data.topic && msg.data.topic.includes('async')) {
-                        this.processAsyncData(msg.data.value);
-                    }
-                } else if (msg.type === 'mqtt_message') {
-                    // Exemplo: tratar dados MQTT recebidos
+                if (msg.type === 'mqtt_message') {
+                    // Só processa dados vindos do MQTT da nuvem
                     console.log('📡 Dados MQTT:', msg.topic, msg.data);
-                    // Se o payload tiver campos conhecidos, pode atualizar os gráficos
                     if (msg.data.temperature) {
                         this.updateRealChart('temperature', msg.data.temperature, new Date().toLocaleTimeString('pt-BR'), '°C');
                         this.updateMetric('temperature', msg.data.temperature.toFixed(1), this.getTemperatureStatus(msg.data.temperature));

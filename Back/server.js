@@ -3,28 +3,51 @@ require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
 const cors = require('cors');
-const KafkaConsumer = require('./kafka-consumer');
+// ...existing code...
 
 class SentinelaBackend {
-    setupMQTT() {
-        // Configurações do broker MQTT (exemplo: broker da nuvem)
-        const mqttUrl = process.env.MQTT_URL || 'mqtt://test.mosquitto.org';
+    async setupMQTT() {
+        // Lê config.json para pegar dados do broker
+        const fs = require('fs');
+        const path = require('path');
+        let config;
+        try {
+            const configPath = path.resolve(__dirname, '..', 'config.json');
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch (err) {
+            console.error('Erro ao ler config.json:', err);
+            return;
+        }
+
+        const mqttConfig = config.mqtt;
+        if (!mqttConfig) {
+            console.error('Configuração MQTT não encontrada no config.json');
+            return;
+        }
+
+        const mqttUrl = `mqtt://${mqttConfig.host}:${mqttConfig.port}`;
         const mqttOptions = {
-            username: process.env.MQTT_USERNAME,
-            password: process.env.MQTT_PASSWORD
+            username: mqttConfig.username,
+            password: mqttConfig.password,
+            keepalive: mqttConfig.keepalive || 60,
+            clean: mqttConfig.clean_session !== false
         };
+
         this.mqttClient = mqtt.connect(mqttUrl, mqttOptions);
 
         this.mqttClient.on('connect', () => {
             console.log('✅ Conectado ao broker MQTT:', mqttUrl);
-            // Subscreve no tópico desejado
-            this.mqttClient.subscribe(process.env.MQTT_TOPIC || 'sentinela/#', (err) => {
-                if (err) console.error('Erro ao subscrever tópico MQTT:', err);
+            // Subscreve nos tópicos definidos no config.json
+            const topics = Object.values(mqttConfig.topics || { sync: 'sentinela/sync', async: 'sentinela/async' });
+            topics.forEach(topic => {
+                this.mqttClient.subscribe(topic, (err) => {
+                    if (err) console.error('Erro ao subscrever tópico MQTT:', topic, err);
+                    else console.log('🟢 Subscreveu tópico:', topic);
+                });
             });
         });
 
         this.mqttClient.on('message', (topic, message) => {
-            // Repassa mensagem recebida para o dashboard via WebSocket
             let payload;
             try {
                 payload = JSON.parse(message.toString());
@@ -45,13 +68,11 @@ class SentinelaBackend {
     constructor() {
         this.app = express();
         this.port = process.env.PORT || 3000;
-        this.kafkaConsumer = new KafkaConsumer();
         this.wsClients = new Set(); // Clientes WebSocket conectados
         this.server = null;
         this.wss = null;
-    this.setupServerAndWebSocket();
-    this.setupKafka();
-    this.setupMQTT();
+        this.setupServerAndWebSocket();
+        this.setupMQTT();
     }
 
     setupServerAndWebSocket() {
@@ -67,34 +88,18 @@ class SentinelaBackend {
         this.app.get('/health', (req, res) => {
             res.json({ 
                 status: 'ok', 
-                kafka: this.kafkaConsumer.isConnected ? 'connected' : 'disconnected',
+                mqtt: this.mqttClient ? 'connected' : 'disconnected',
                 clients: this.wsClients.size
             });
         });
 
         // API para polling (fallback)
-        this.app.get('/api/kafka-data', async (req, res) => {
-            try {
-                const messages = await this.kafkaConsumer.getRecentMessages(10);
-                res.json({
-                    success: true,
-                    messages: messages,
-                    timestamp: new Date().toISOString()
-                });
-            } catch (error) {
-                res.status(500).json({
-                    success: false,
-                    error: error.message
-                });
-            }
-        });
-
-        // API para informações do Kafka
-        this.app.get('/api/kafka-info', (req, res) => {
+        this.app.get('/api/mqtt-data', (req, res) => {
+            // Para simplicidade, não implementa cache, apenas status
             res.json({
-                topics: [process.env.KAFKA_TOPIC_SYNC, process.env.KAFKA_TOPIC_ASYNC],
-                connected: this.kafkaConsumer.isConnected,
-                bootstrapServers: process.env.KAFKA_BOOTSTRAP_SERVERS
+                success: true,
+                status: this.mqttClient ? 'connected' : 'disconnected',
+                timestamp: new Date().toISOString()
             });
         });
 
@@ -135,7 +140,7 @@ class SentinelaBackend {
             ws.send(JSON.stringify({
                 type: 'connection',
                 status: 'connected',
-                kafka: this.kafkaConsumer.isConnected
+                mqtt: this.mqttClient ? 'connected' : 'disconnected'
             }));
 
             ws.on('close', () => {
@@ -152,37 +157,7 @@ class SentinelaBackend {
 
     // Removido: setupWebSocket()
 
-    setupKafka() {
-        // Configura callbacks do Kafka
-        this.kafkaConsumer.onMessage((message) => {
-            // Envia mensagem para todos os clientes WebSocket
-            this.broadcastToWebSocket({
-                type: 'kafka_message',
-                data: message
-            });
-        });
-
-        // Conecta ao Kafka
-        this.connectToKafka();
-    }
-
-    async connectToKafka() {
-        try {
-            await this.kafkaConsumer.connect();
-            this.broadcastToWebSocket({
-                type: 'kafka_status',
-                status: 'connected'
-            });
-        } catch (error) {
-            console.error('❌ Falha ao conectar no Kafka:', error);
-            
-            // Tenta reconectar após 10 segundos
-            setTimeout(() => {
-                console.log('🔄 Tentando reconectar ao Kafka...');
-                this.connectToKafka();
-            }, 10000);
-        }
-    }
+    // Removido: setupKafka e connectToKafka
 
     broadcastToWebSocket(message) {
         const messageString = JSON.stringify(message);
@@ -201,8 +176,7 @@ class SentinelaBackend {
         this.wsClients.forEach(client => client.close());
         this.wss.close();
         
-        // Desconecta do Kafka
-        await this.kafkaConsumer.disconnect();
+    // ...existing code...
         
         process.exit(0);
     }

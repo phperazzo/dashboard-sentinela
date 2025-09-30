@@ -1,53 +1,53 @@
-const mqtt = require('mqtt');
+// const mqtt = require('mqtt');
 
-const config = {
-    host: '34.170.31.196',
-    port: 1883,
-    username: 'device_001',
-    password: 'IoTDevice2024!',
-    topics: {
-        sync: 'sentinela/sync',
-        async: 'sentinela/async'
-    }
-};
+// const config = {
+//     host: '34.170.31.196',
+//     port: 1883,
+//     username: 'device_001',
+//     password: 'IoTDevice2024!',
+//     topics: {
+//         sync: 'sentinela/sync',
+//         async: 'sentinela/async'
+//     }
+// };
 
-console.log('🔌 Conectando ao MQTT...');
+// console.log('🔌 Conectando ao MQTT...');
 
-const client = mqtt.connect(`mqtt://${config.host}:${config.port}`, {
-    username: config.username,
-    password: config.password
-});
+// const client = mqtt.connect(`mqtt://${config.host}:${config.port}`, {
+//     username: config.username,
+//     password: config.password
+// });
 
-client.on('connect', () => {
-    console.log('✅ Conectado ao MQTT!');
-    
-    // Publicar dados de teste
-    const syncMessage = {
-        deviceId: 'sentinela-sala-01',
-        sensor: 'temperatura',
-        reading: { value: 22.8, unit: 'C' },
-        timestamp_unix: Math.floor(Date.now() / 1000)
-    };
-    
-    const asyncMessage = {
-        deviceId: 'sentinela-sala-01',
-        event: 'rede_status',
-        value: 'online',
-        timestamp_unix: Math.floor(Date.now() / 1000)
-    };
-    
-    client.publish(config.topics.sync, JSON.stringify(syncMessage));
-    console.log('📤 Mensagem sync publicada:', syncMessage);
-    
-    client.publish(config.topics.async, JSON.stringify(asyncMessage));
-    console.log('📤 Mensagem async publicada:', asyncMessage);
-    
-    setTimeout(() => {
-        client.end();
-        console.log('✅ Teste concluído!');
-    }, 2000);
-});
+// client.on('connect', () => {
+//     console.log('✅ Conectado ao MQTT!');
+//     
+//     // Publicar dados de teste
+//     const syncMessage = {
+//         deviceId: 'sentinela-sala-01',
+//         sensor: 'temperatura',
+//         reading: { value: 22.8, unit: 'C' },
+//         timestamp_unix: Math.floor(Date.now() / 1000)
+//     };
+//     
+//     const asyncMessage = {
+//         deviceId: 'sentinela-sala-01',
+//         event: 'rede_status',
+//         value: 'online',
+//         timestamp_unix: Math.floor(Date.now() / 1000)
+//     };
+//     
+//     client.publish(config.topics.sync, JSON.stringify(syncMessage));
+//     console.log('📤 Mensagem sync publicada:', syncMessage);
+//     
+//     client.publish(config.topics.async, JSON.stringify(asyncMessage));
+//     console.log('📤 Mensagem async publicada:', asyncMessage);
+//     
+//     setTimeout(() => {
+//         client.end();
+//         console.log('✅ Teste concluído!');
+//     }, 2000);
+// });
 
-client.on('error', (error) => {
-    console.error('❌ Erro MQTT:', error);
-});
+// client.on('error', (error) => {
+//     console.error('❌ Erro MQTT:', error);
+// });
