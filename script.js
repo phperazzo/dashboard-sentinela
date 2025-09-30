@@ -1,4 +1,16 @@
 class SentinelaDashboard {
+    updateMQTTStatus(connected) {
+        const statusElement = document.getElementById('mqttStatus');
+        if (statusElement) {
+            if (connected) {
+                statusElement.className = 'mqtt-status connected';
+                statusElement.innerHTML = '<i class="fas fa-database"></i> MQTT Online';
+            } else {
+                statusElement.className = 'mqtt-status disconnected';
+                statusElement.innerHTML = '<i class="fas fa-database"></i> MQTT Offline';
+            }
+        }
+    }
     constructor() {
         this.isConnected = false;
         this.temperatureChart = null;
@@ -58,16 +70,19 @@ class SentinelaDashboard {
         this.ws.onopen = () => {
             console.log('🔌 Conectado ao WebSocket do backend');
             this.updateConnectionStatus(true);
+            this.updateMQTTStatus(true);
         };
 
         this.ws.onclose = () => {
             console.warn('WebSocket desconectado');
             this.updateConnectionStatus(false);
+            this.updateMQTTStatus(false);
         };
 
         this.ws.onerror = (err) => {
             console.error('Erro WebSocket:', err);
             this.updateConnectionStatus(false);
+            this.updateMQTTStatus(false);
         };
 
         this.ws.onmessage = (event) => {
@@ -79,6 +94,22 @@ class SentinelaDashboard {
                         this.processSyncData(msg.data.value);
                     } else if (msg.data.topic && msg.data.topic.includes('async')) {
                         this.processAsyncData(msg.data.value);
+                    }
+                } else if (msg.type === 'mqtt_message') {
+                    // Exemplo: tratar dados MQTT recebidos
+                    console.log('📡 Dados MQTT:', msg.topic, msg.data);
+                    // Se o payload tiver campos conhecidos, pode atualizar os gráficos
+                    if (msg.data.temperature) {
+                        this.updateRealChart('temperature', msg.data.temperature, new Date().toLocaleTimeString('pt-BR'), '°C');
+                        this.updateMetric('temperature', msg.data.temperature.toFixed(1), this.getTemperatureStatus(msg.data.temperature));
+                    }
+                    if (msg.data.humidity) {
+                        this.updateRealChart('humidity', msg.data.humidity, new Date().toLocaleTimeString('pt-BR'), '%');
+                        this.updateMetric('humidity', msg.data.humidity.toFixed(1), this.getHumidityStatus(msg.data.humidity));
+                    }
+                    if (msg.data.voltage) {
+                        this.updateRealChart('voltage', msg.data.voltage, new Date().toLocaleTimeString('pt-BR'), 'V');
+                        this.updateMetric('voltage', msg.data.voltage.toFixed(1), this.getVoltageStatus(msg.data.voltage));
                     }
                 }
             } catch (e) {

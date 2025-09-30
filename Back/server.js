@@ -1,3 +1,4 @@
+const mqtt = require('mqtt');
 require('dotenv').config();
 const express = require('express');
 const WebSocket = require('ws');
@@ -5,6 +6,42 @@ const cors = require('cors');
 const KafkaConsumer = require('./kafka-consumer');
 
 class SentinelaBackend {
+    setupMQTT() {
+        // Configurações do broker MQTT (exemplo: broker da nuvem)
+        const mqttUrl = process.env.MQTT_URL || 'mqtt://test.mosquitto.org';
+        const mqttOptions = {
+            username: process.env.MQTT_USERNAME,
+            password: process.env.MQTT_PASSWORD
+        };
+        this.mqttClient = mqtt.connect(mqttUrl, mqttOptions);
+
+        this.mqttClient.on('connect', () => {
+            console.log('✅ Conectado ao broker MQTT:', mqttUrl);
+            // Subscreve no tópico desejado
+            this.mqttClient.subscribe(process.env.MQTT_TOPIC || 'sentinela/#', (err) => {
+                if (err) console.error('Erro ao subscrever tópico MQTT:', err);
+            });
+        });
+
+        this.mqttClient.on('message', (topic, message) => {
+            // Repassa mensagem recebida para o dashboard via WebSocket
+            let payload;
+            try {
+                payload = JSON.parse(message.toString());
+            } catch (e) {
+                payload = { raw: message.toString() };
+            }
+            this.broadcastToWebSocket({
+                type: 'mqtt_message',
+                topic,
+                data: payload
+            });
+        });
+
+        this.mqttClient.on('error', (err) => {
+            console.error('Erro MQTT:', err);
+        });
+    }
     constructor() {
         this.app = express();
         this.port = process.env.PORT || 3000;
@@ -12,8 +49,9 @@ class SentinelaBackend {
         this.wsClients = new Set(); // Clientes WebSocket conectados
         this.server = null;
         this.wss = null;
-        this.setupServerAndWebSocket();
-        this.setupKafka();
+    this.setupServerAndWebSocket();
+    this.setupKafka();
+    this.setupMQTT();
     }
 
     setupServerAndWebSocket() {

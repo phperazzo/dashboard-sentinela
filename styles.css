@@ -27,18 +27,41 @@ body {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 15px;
-    padding: 20px 30px;
-    margin-bottom: 30px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 24px 40px 18px 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    flex-wrap: wrap;
 }
 
 .dashboard-header h1 {
     color: #2c3e50;
-    font-size: 2.5em;
-    font-weight: 700;
+    font-size: 2.7em;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    color: #666;
+    font-weight: 400;
+    margin-left: 5px;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.header-right {
+    display: flex;
+    flex-direction: row;
+    gap: 18px;
+    align-items: center;
 }
 
 .dashboard-header h1 i {
@@ -74,24 +97,165 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 32px;
+    width: 100%;
 }
 
-/* Metrics Grid */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 25px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 28px;
+    margin-bottom: 10px;
 }
 
 .metric-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 25px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    border-left: 5px solid;
+    background: rgba(255,255,255,0.92);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    padding: 24px 18px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.2s;
+    border: 1.5px solid #e9ecef;
+    min-height: 170px;
+}
+.metric-card:hover {
+    box-shadow: 0 8px 32px rgba(52,152,219,0.13);
+}
+.metric-icon {
+    font-size: 2.5em;
+    margin-bottom: 8px;
+    color: #3498db;
+}
+.metric-title {
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.metric-value {
+    font-size: 2.1em;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+.metric-status {
+    font-size: 1em;
+    color: #888;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 28px;
+    margin-bottom: 10px;
+}
+.chart-card {
+    background: rgba(255,255,255,0.93);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+    padding: 18px 18px 12px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 1.5px solid #e9ecef;
+}
+.chart-card h2 {
+    font-size: 1.2em;
+    color: #3498db;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chart-card canvas {
+    width: 100% !important;
+    height: 220px !important;
+    margin-top: 4px;
+}
+
+.logs-section {
+    background: rgba(255,255,255,0.93);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+    padding: 18px 18px 12px 18px;
+    border: 1.5px solid #e9ecef;
+}
+.logs-section h2 {
+    font-size: 1.2em;
+    color: #764ba2;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.logs-container {
+    font-size: 0.98em;
+    color: #333;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 60px;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.07);
+}
+
+@media (max-width: 900px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 18px 10px 12px 10px;
+    }
+    .header-right {
+        margin-top: 10px;
+        gap: 10px;
+    }
+    .metrics-grid, .charts-section {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+}
+
+/* Metrics Grid */
+/* Visual profissional para grid e cards */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 28px;
+    margin-bottom: 10px;
+}
+
+.metric-card {
+    background: linear-gradient(135deg, #f8fafc 60%, #e3e6f3 100%);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(52,152,219,0.10);
+    padding: 28px 20px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.25s, transform 0.25s;
+    border: 2.5px solid #e9ecef;
+    min-height: 170px;
+    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.metric-card:hover {
+    box-shadow: 0 16px 48px rgba(52,152,219,0.18);
+    transform: translateY(-4px) scale(1.03);
+}
+.metric-card#card-temperature {
+    border-left: 8px solid #ff7675;
+}
+.metric-card#card-humidity {
+    border-left: 8px solid #00b894;
+}
+.metric-card#card-voltage {
+    border-left: 8px solid #0984e3;
 }
 
 .metric-card:hover {

@@ -53,111 +53,59 @@
                 <span>Conectando...</span>
             </div>
             <!-- ✅ Status do MQTT -->
+            <div class="mqtt-status disconnected" id="mqttStatus">
+                <i class="fas fa-database"></i> MQTT Offline
+            </div>
         </header>
 
         <main class="dashboard-main">
-            <div class="metrics-grid">
-                <!-- Temperature Card -->
-                <div class="metric-card temperature-card">
-                    <div class="metric-header">
-                        <i class="fas fa-thermometer-half"></i>
-                        <h3>Temperatura</h3>
-                    </div>
-                    <div class="metric-value">
-                        <span class="value" id="temperature">--</span>
-                        <span class="unit">°C</span>
-                    </div>
-                    <div class="metric-status" id="temperatureStatus">
-                        <span class="status-text">Aguardando dados...</span>
-                    </div>
+            <section class="metrics-grid">
+                <div class="metric-card" id="card-temperature">
+                    <div class="metric-icon"><i class="fas fa-thermometer-half"></i></div>
+                    <div class="metric-title">Temperatura</div>
+                    <div class="metric-value" id="temperatureValue">--</div>
+                    <div class="metric-status" id="temperatureStatus">--</div>
                 </div>
-
-                <!-- Humidity Card -->
-                <div class="metric-card humidity-card">
-                    <div class="metric-header">
-                        <i class="fas fa-tint"></i>
-                        <h3>Umidade</h3>
-                    </div>
-                    <div class="metric-value">
-                        <span class="value" id="humidity">--</span>
-                        <span class="unit">%</span>
-                    </div>
-                    <div class="metric-status" id="humidityStatus">
-                        <span class="status-text">Aguardando dados...</span>
-                    </div>
+                <div class="metric-card" id="card-humidity">
+                    <div class="metric-icon"><i class="fas fa-tint"></i></div>
+                    <div class="metric-title">Umidade</div>
+                    <div class="metric-value" id="humidityValue">--</div>
+                    <div class="metric-status" id="humidityStatus">--</div>
                 </div>
-
-                <!-- Voltage Card -->
-                <div class="metric-card voltage-card">
-                    <div class="metric-header">
-                        <i class="fas fa-bolt"></i>
-                        <h3>Tensão da Rede</h3>
-                    </div>
-                    <div class="metric-value">
-                        <span class="value" id="voltage">--</span>
-                        <span class="unit">V</span>
-                    </div>
-                    <div class="metric-status" id="voltageStatus">
-                        <span class="status-text">Aguardando dados...</span>
-                    </div>
-                    <div class="voltage-variation">
-                        <span>Variação: <span id="voltageVariation">--</span>%</span>
-                    </div>
+                <div class="metric-card" id="card-voltage">
+                    <div class="metric-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="metric-title">Tensão</div>
+                    <div class="metric-value" id="voltageValue">--</div>
+                    <div class="metric-status" id="voltageStatus">--</div>
                 </div>
+            </section>
 
-                <!-- Ethernet Status Card -->
-                <div class="metric-card ethernet-card">
-                    <div class="metric-header">
-                        <i class="fas fa-ethernet"></i>
-                        <h3>Rede Ethernet</h3>
-                    </div>
-                    <div class="ethernet-status" id="ethernetStatus">
-                        <div class="status-indicator" id="ethernetIndicator">
-                            <i class="fas fa-circle"></i>
-                        </div>
-                        <span class="status-text" id="ethernetText">Verificando...</span>
-                    </div>
-                    <div class="ethernet-details">
-                        <div class="detail-item">
-                            <span>IP: <span id="ethernetIP">--</span></span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Velocidade: <span id="ethernetSpeed">--</span></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Section -->
-            <div class="charts-section">
-                <div class="chart-container">
-                    <h3><i class="fas fa-chart-line"></i> Histórico de Temperatura</h3>
+            <section class="charts-section">
+                <div class="chart-card">
+                    <h2><i class="fas fa-chart-line"></i> Temperatura</h2>
                     <canvas id="temperatureChart"></canvas>
                 </div>
-                
-                <div class="chart-container">
-                    <h3><i class="fas fa-chart-area"></i> Histórico de Umidade</h3>
+                <div class="chart-card">
+                    <h2><i class="fas fa-chart-area"></i> Umidade</h2>
                     <canvas id="humidityChart"></canvas>
                 </div>
-            </div>
-            
-            <!-- ✅ Seção de Log de Eventos (NOVA) -->
-            <div class="events-section">
-                <h3><i class="fas fa-list-alt"></i> Log de Eventos</h3>
-                <div class="event-log" id="eventLog">
-                    <div class="event-log-item">
-                        <span class="event-time">--:--:--</span>
-                        <span class="event-type">Sistema</span>
-                        <span class="event-value">Aguardando eventos...</span>
-                    </div>
+                <div class="chart-card">
+                    <h2><i class="fas fa-bolt"></i> Tensão</h2>
+                    <canvas id="voltageChart"></canvas>
                 </div>
-            </div>
+            </section>
+
+            <section class="logs-section">
+                <h2><i class="fas fa-ethernet"></i> Logs de Eventos</h2>
+                <div class="logs-container" id="logsContainer">
+                    <!-- Logs dinâmicos -->
+                </div>
+            </section>
         </main>
 
         <footer class="dashboard-footer">
             <p>Última atualização: <span id="lastUpdate">--</span></p>
             <p>Sistema Sentinela v1.0 - Conectado via MQTT</p>
-                <p>Sistema Sentinela v1.0</p>
         </footer>
     </div>
 
