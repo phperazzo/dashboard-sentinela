@@ -52,10 +52,6 @@
                 <i class="fas fa-wifi"></i>
                 <span>Conectando...</span>
             </div>
-            <!-- ✅ Status do MQTT -->
-            <div class="mqtt-status disconnected" id="mqttStatus">
-                <i class="fas fa-database"></i> MQTT Offline
-            </div>
         </header>
 
         <main class="dashboard-main">
@@ -72,9 +68,15 @@
                     <div class="metric-value" id="humidityValue">--</div>
                     <div class="metric-status" id="humidityStatus">--</div>
                 </div>
+                <div class="metric-card" id="card-network">
+                    <div class="metric-icon"><i class="fas fa-ethernet"></i></div>
+                    <div class="metric-title">Rede</div>
+                    <div class="metric-value" id="networkValue">--</div>
+                    <div class="metric-status" id="networkStatus">--</div>
+                </div>
                 <div class="metric-card" id="card-voltage">
                     <div class="metric-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="metric-title">Tensão</div>
+                    <div class="metric-title">Energia</div>
                     <div class="metric-value" id="voltageValue">--</div>
                     <div class="metric-status" id="voltageStatus">--</div>
                 </div>

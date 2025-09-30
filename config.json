@@ -6,8 +6,8 @@
     "username": "device_001",
     "password": "IoTDevice2024!",
     "topics": {
-      "sync": "sentinela/sync",
-      "async": "sentinela/async"
+      "sync": "iot/device_001/sync",
+      "async": "iot/device_001/async"
     }
   }
 }

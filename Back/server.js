@@ -54,6 +54,7 @@ class SentinelaBackend {
             } catch (e) {
                 payload = { raw: message.toString() };
             }
+            console.log(`📥 MQTT recebido do tópico '${topic}':`, payload);
             this.broadcastToWebSocket({
                 type: 'mqtt_message',
                 topic,
@@ -155,9 +156,7 @@ class SentinelaBackend {
         });
     }
 
-    // Removido: setupWebSocket()
-
-    // Removido: setupKafka e connectToKafka
+    // Não há mais Kafka, apenas MQTT
 
     broadcastToWebSocket(message) {
         const messageString = JSON.stringify(message);

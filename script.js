@@ -1,37 +1,22 @@
 class SentinelaDashboard {
-    updateMQTTStatus(connected) {
-        const statusElement = document.getElementById('mqttStatus');
-        if (statusElement) {
-            if (connected) {
-                statusElement.className = 'mqtt-status connected';
-                statusElement.innerHTML = '<i class="fas fa-database"></i> MQTT Online';
-            } else {
-                statusElement.className = 'mqtt-status disconnected';
-                statusElement.innerHTML = '<i class="fas fa-database"></i> MQTT Offline';
-            }
-        }
-    }
     constructor() {
-        this.isConnected = false;
-        this.temperatureChart = null;
-        this.humidityChart = null;
-        this.voltageChart = null;
-        
         this.dataHistory = {
             temperature: [],
             humidity: [],
             voltage: [],
+            network: [],
             timestamps: []
         };
-        
+
         this.asyncStatus = {
-            rede: 'desconectado',
+            rede: "desconhecido",
             ultimosEventos: []
         };
 
+        this.isConnected = false;
         this.maxDataPoints = 50;
         this.config = {};
-    this.ws = null;
+        this.ws = null;
         
         this.loadConfig().then(() => {
             this.init();
@@ -40,13 +25,13 @@ class SentinelaDashboard {
 
     async loadConfig() {
         try {
-            const response = await fetch('config.json'); // Mantém apenas o fetch do config.json local
+            const response = await fetch("config.json");
             if (response.ok) {
                 this.config = await response.json();
                 this.maxDataPoints = this.config.dashboard?.maxDataPoints || 50;
             }
         } catch (err) {
-            console.error('Erro ao carregar config.json:', err);
+            console.error("Erro ao carregar config.json:", err);
         }
     }
 
@@ -58,29 +43,28 @@ class SentinelaDashboard {
     }
 
     connectToWebSocket() {
-        // Conecta ao WebSocket na mesma porta do site (backend), usando o mesmo protocolo
         let wsUrl;
-        if (window.location.protocol === 'https:') {
-            wsUrl = 'wss://' + window.location.host;
+        if (window.location.protocol === "https:") {
+            wsUrl = "wss://" + window.location.host;
         } else {
-            wsUrl = 'ws://' + window.location.host;
+            wsUrl = "ws://" + window.location.host;
         }
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
-            console.log('🔌 Conectado ao WebSocket do backend');
+            console.log("🔌 Conectado ao WebSocket do backend");
             this.updateConnectionStatus(true);
             this.updateMQTTStatus(true);
         };
 
         this.ws.onclose = () => {
-            console.warn('WebSocket desconectado');
+            console.warn("WebSocket desconectado");
             this.updateConnectionStatus(false);
             this.updateMQTTStatus(false);
         };
 
         this.ws.onerror = (err) => {
-            console.error('Erro WebSocket:', err);
+            console.error("Erro WebSocket:", err);
             this.updateConnectionStatus(false);
             this.updateMQTTStatus(false);
         };
@@ -88,95 +72,77 @@ class SentinelaDashboard {
         this.ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
-                if (msg.type === 'mqtt_message') {
-                    // Só processa dados vindos do MQTT da nuvem
-                    console.log('📡 Dados MQTT:', msg.topic, msg.data);
-                    if (msg.data.temperature) {
-                        this.updateRealChart('temperature', msg.data.temperature, new Date().toLocaleTimeString('pt-BR'), '°C');
-                        this.updateMetric('temperature', msg.data.temperature.toFixed(1), this.getTemperatureStatus(msg.data.temperature));
-                    }
-                    if (msg.data.humidity) {
-                        this.updateRealChart('humidity', msg.data.humidity, new Date().toLocaleTimeString('pt-BR'), '%');
-                        this.updateMetric('humidity', msg.data.humidity.toFixed(1), this.getHumidityStatus(msg.data.humidity));
-                    }
-                    if (msg.data.voltage) {
-                        this.updateRealChart('voltage', msg.data.voltage, new Date().toLocaleTimeString('pt-BR'), 'V');
-                        this.updateMetric('voltage', msg.data.voltage.toFixed(1), this.getVoltageStatus(msg.data.voltage));
+                if (msg.type === "mqtt_message") {
+                    console.log("📡 Dados MQTT recebidos:", msg.data);
+                    
+                    // Processar array de sensores
+                    if (Array.isArray(msg.data)) {
+                        msg.data.forEach(sensorData => this.processSensorData(sensorData));
+                    } else {
+                        // Processar sensor único
+                        this.processSensorData(msg.data);
                     }
                 }
             } catch (e) {
-                console.error('Erro ao processar mensagem WebSocket:', e);
+                console.error("Erro ao processar mensagem WebSocket:", e);
             }
         };
     }
-    
-    initializeEmptyDashboard() {
-        this.updateMetric('temperature', '--', { class: 'disabled', text: 'Sem dados' });
-        this.updateMetric('humidity', '--', { class: 'disabled', text: 'Sem dados' });
-        this.updateMetric('voltage', '--', { class: 'disabled', text: 'Sem dados' });
-        this.updateNetworkStatus('desconectado');
-        this.updateConnectionStatus(false);
-    }
 
-
-    processSyncData(data) {
-        if (!data || !data.sensor || !data.reading) {
-            console.log('Dados sync inválidos:', data);
+    processSensorData(data) {
+        if (!data || !data.sensor || !data.reading || 
+            (typeof data.reading.value !== "number" && typeof data.reading.value !== "string")) {
+            console.log("Dados de sensor inválidos:", data);
             return;
         }
-        
-        const now = new Date();
-        const timeLabel = now.toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            second: '2-digit'
-        });
 
-        const value = data.reading.value;
-        const unit = data.reading.unit;
+        const timeLabel = data.timestamp_unix ?
+            new Date(data.timestamp_unix * 1000).toLocaleTimeString("pt-BR") :
+            new Date().toLocaleTimeString("pt-BR");
 
-        console.log(`📊 Dados sync: ${data.sensor} = ${value}${unit}`);
+        console.log(`📊 Processando sensor: ${data.sensor} = ${data.reading.value}${data.reading.unit || ''}`);
 
         switch (data.sensor) {
-            case 'temperatura':
-                this.updateRealChart('temperature', value, timeLabel, '°C');
-                this.updateMetric('temperature', value.toFixed(1), this.getTemperatureStatus(value));
+            case "temperatura":
+                this.updateRealChart("temperature", data.reading.value, timeLabel, data.reading.unit || "°C");
+                this.updateMetric("temperature", data.reading.value.toFixed(1), this.getTemperatureStatus(data.reading.value));
                 break;
-                
-            case 'umidade':
-                this.updateRealChart('humidity', value, timeLabel, '%');
-                this.updateMetric('humidity', value.toFixed(1), this.getHumidityStatus(value));
+            case "umidade":
+                this.updateRealChart("humidity", data.reading.value, timeLabel, data.reading.unit || "%");
+                this.updateMetric("humidity", data.reading.value.toFixed(1), this.getHumidityStatus(data.reading.value));
                 break;
-                
-            case 'tensao':
-                this.updateRealChart('voltage', value, timeLabel, 'V');
-                this.updateMetric('voltage', value.toFixed(1), this.getVoltageStatus(value));
+            case "rede":
+                // Processar status da rede (ON/OFF) -> Conectado/Desconectado
+                const networkStatus = data.reading.value === "ON" ? "Conectado" : "Desconectado";
+                this.updateMetric("network", networkStatus, this.getNetworkStatusFromValue(data.reading.value));
                 break;
+            case "energia":
+                // Processar status da energia (ON/OFF)
+                this.updateMetric("voltage", data.reading.value, this.getEnergyStatus(data.reading.value));
+                break;
+            case "tensao":
+                // Manter compatibilidade com tensão (valor numérico)
+                this.updateRealChart("voltage", data.reading.value, timeLabel, data.reading.unit || "V");
+                this.updateMetric("voltage", data.reading.value.toFixed(1), this.getVoltageStatus(data.reading.value));
                 
+                // Determinar status da rede baseado na tensão
+                const isOnline = data.reading.value > 200;
+                const networkStatusFromVoltage = isOnline ? "Online" : "Offline";
+                this.updateMetric("network", networkStatusFromVoltage, this.getNetworkStatus(isOnline));
+                break;
             default:
-                console.log('Sensor desconhecido:', data.sensor);
+                console.log("Sensor desconhecido:", data.sensor);
         }
         
         this.updateLastUpdateTime();
     }
 
-    processAsyncData(data) {
-        if (!data || !data.event) {
-            console.log('Dados async inválidos:', data);
-            return;
-        }
-        
-        console.log('🔔 Evento async:', data);
-
-        switch (data.event) {
-            case 'rede_status':
-                this.updateNetworkStatus(data.value);
-                this.addToEventLog(data);
-                break;
-                
-            default:
-                console.log('Evento desconhecido:', data.event);
-        }
+    initializeEmptyDashboard() {
+        this.updateMetric("temperature", "--", { class: "disabled", text: "Sem dados" });
+        this.updateMetric("humidity", "--", { class: "disabled", text: "Sem dados" });
+        this.updateMetric("network", "--", { class: "disabled", text: "Sem dados" });
+        this.updateMetric("voltage", "--", { class: "disabled", text: "Sem dados" });
+        this.updateConnectionStatus(false);
     }
 
     updateRealChart(sensorType, value, timestamp, unit) {
@@ -193,142 +159,128 @@ class SentinelaDashboard {
         this.updateChart(sensorType);
     }
 
-    updateNetworkStatus(status) {
-        // Suporte a objeto: status pode ser string ('online'/'offline') ou objeto { value, ip, velocidade }
-        let value = status, ip = '--', velocidade = '--';
-        if (typeof status === 'object' && status !== null) {
-            value = status.value;
-            ip = status.ip || '--';
-            velocidade = status.velocidade || '--';
-        }
-        const isConnected = value === 'online';
-        this.asyncStatus.rede = value;
-
-        const indicatorElement = document.getElementById('ethernetIndicator');
-        const textElement = document.getElementById('ethernetText');
-        const ipElement = document.getElementById('ethernetIP');
-        const speedElement = document.getElementById('ethernetSpeed');
-
-        if (ipElement) ipElement.textContent = ip;
-        if (speedElement) speedElement.textContent = velocidade;
-
-        if (indicatorElement && textElement) {
-            if (isConnected) {
-                indicatorElement.className = 'status-indicator connected';
-                textElement.textContent = 'Conectado';
-                this.showNotification('Rede conectada', 'success');
-            } else {
-                indicatorElement.className = 'status-indicator disconnected';
-                textElement.textContent = 'Desconectado';
-                this.showNotification('Rede desconectada', 'error');
-            }
-        }
-    }
-
     updateConnectionStatus(connected) {
         this.isConnected = connected;
-        const statusElement = document.getElementById('connectionStatus');
+        const statusElement = document.getElementById("connectionStatus");
         if (statusElement) {
-            const icon = statusElement.querySelector('i');
-            const text = statusElement.querySelector('span');
+            const icon = statusElement.querySelector("i");
+            const text = statusElement.querySelector("span");
             if (connected) {
-                statusElement.className = 'connection-status connected';
-                icon.className = 'fas fa-wifi';
-                text.textContent = 'Conectado ao backend';
+                statusElement.className = "connection-status connected";
+                icon.className = "fas fa-wifi";
+                text.textContent = "Conectado";
             } else {
-                statusElement.className = 'connection-status disconnected';
-                icon.className = 'fas fa-wifi-slash';
-                text.textContent = 'Desconectado';
+                statusElement.className = "connection-status disconnected";
+                icon.className = "fas fa-wifi-slash";
+                text.textContent = "Desconectado";
             }
         }
     }
 
-    // ... (mantenha os outros métodos iguais)
+    updateMQTTStatus(connected) {
+        const statusElement = document.getElementById("mqttStatus");
+        if (statusElement) {
+            if (connected) {
+                statusElement.className = "mqtt-status connected";
+                statusElement.innerHTML = "<i class=\"fas fa-database\"></i> MQTT Online";
+            } else {
+                statusElement.className = "mqtt-status disconnected";
+                statusElement.innerHTML = "<i class=\"fas fa-database\"></i> MQTT Offline";
+            }
+        }
+    }
 
     updateMetric(metricType, value, status) {
-        const valueElement = document.getElementById(metricType);
-        const statusElement = document.getElementById(metricType + 'Status');
+        const valueElement = document.getElementById(metricType + "Value");
+        const statusElement = document.getElementById(metricType + "Status");
         
         if (valueElement) valueElement.textContent = value;
         if (statusElement) {
             statusElement.className = `metric-status ${status.class}`;
-            statusElement.querySelector('.status-text').textContent = status.text;
+            if (statusElement.querySelector(".status-text")) {
+                statusElement.querySelector(".status-text").textContent = status.text;
+            } else {
+                statusElement.textContent = status.text;
+            }
         }
     }
 
     getTemperatureStatus(temp) {
-        if (temp < 0 || temp > 40) return { class: 'danger', text: 'Temperatura crítica!' };
-        else if (temp < 10 || temp > 30) return { class: 'warning', text: 'Temperatura elevada' };
-        else return { class: 'normal', text: 'Temperatura normal' };
+        if (temp < 0 || temp > 40) return { class: "danger", text: "Temperatura crítica!" };
+        else if (temp < 10 || temp > 30) return { class: "warning", text: "Temperatura elevada" };
+        else return { class: "normal", text: "Temperatura normal" };
     }
 
     getHumidityStatus(humidity) {
-        if (humidity < 30 || humidity > 80) return { class: 'warning', text: 'Umidade fora do ideal' };
-        else return { class: 'normal', text: 'Umidade ideal' };
+        if (humidity < 30 || humidity > 80) return { class: "warning", text: "Umidade fora do ideal" };
+        else return { class: "normal", text: "Umidade ideal" };
+    }
+
+    getNetworkStatusFromValue(value) {
+        if (value === "ON") {
+            return { class: "normal", text: "Rede conectada" };
+        } else {
+            return { class: "danger", text: "Rede desconectada" };
+        }
+    }
+
+    getEnergyStatus(value) {
+        if (value === "ON") {
+            return { class: "normal", text: "Energia estável" };
+        } else {
+            return { class: "danger", text: "Sem energia" };
+        }
+    }
+
+    getNetworkStatus(isOnline) {
+        if (isOnline) {
+            return { class: "normal", text: "Rede conectada" };
+        } else {
+            return { class: "danger", text: "Rede desconectada" };
+        }
+    }
+
+    getNetworkStatusFromValue(value) {
+        if (value === "ON") {
+            return { class: "normal", text: "Rede conectada" };
+        } else {
+            return { class: "danger", text: "Rede desconectada" };
+        }
+    }
+
+    getEnergyStatus(value) {
+        if (value === "ON") {
+            return { class: "normal", text: "Energia estável" };
+        } else {
+            return { class: "danger", text: "Sem energia" };
+        }
     }
 
     getVoltageStatus(voltage) {
-        if (voltage < 200 || voltage > 240) return { class: 'danger', text: 'Tensão crítica!' };
-        else if (voltage < 210 || voltage > 230) return { class: 'warning', text: 'Tensão instável' };
-        else return { class: 'normal', text: 'Tensão estável' };
+        if (voltage < 200 || voltage > 240) return { class: "danger", text: "Tensão crítica!" };
+        else if (voltage < 210 || voltage > 230) return { class: "warning", text: "Tensão instável" };
+        else return { class: "normal", text: "Tensão estável" };
     }
 
     initializeCharts() {
-        console.log('Inicializando gráficos...');
-        // Seu código de gráficos
+        console.log("Inicializando gráficos...");
+        // Placeholder para gráficos Chart.js
     }
 
     updateChart(sensorType) {
-        console.log('Atualizando gráfico:', sensorType);
-        // Seu código de gráficos
+        console.log("Atualizando gráfico:", sensorType);
+        // Placeholder para atualização de gráficos
     }
 
     updateLastUpdateTime() {
-        const lastUpdateElement = document.getElementById('lastUpdate');
+        const lastUpdateElement = document.getElementById("lastUpdate");
         if (lastUpdateElement) {
-            lastUpdateElement.textContent = new Date().toLocaleString('pt-BR');
+            lastUpdateElement.textContent = new Date().toLocaleString("pt-BR");
         }
     }
 
     setupEventListeners() {
-        window.addEventListener('beforeunload', () => this.cleanup());
-    }
-
-    addToEventLog(eventData) {
-        const timestamp = eventData.timestamp_unix 
-            ? new Date(eventData.timestamp_unix * 1000).toLocaleString('pt-BR')
-            : new Date().toLocaleString('pt-BR');
-            
-        this.asyncStatus.ultimosEventos.unshift({
-            event: eventData.event,
-            value: eventData.value,
-            timestamp: timestamp
-        });
-        
-        if (this.asyncStatus.ultimosEventos.length > 10) {
-            this.asyncStatus.ultimosEventos.pop();
-        }
-        
-        this.updateEventLogDisplay();
-    }
-
-    updateEventLogDisplay() {
-        const logContainer = document.getElementById('eventLog');
-        if (logContainer) {
-            logContainer.innerHTML = this.asyncStatus.ultimosEventos
-                .map(event => `
-                    <div class="event-log-item">
-                        <span class="event-time">${event.timestamp}</span>
-                        <span class="event-type">${event.event}</span>
-                        <span class="event-value ${event.value === 'online' ? 'online' : 'offline'}">${event.value}</span>
-                    </div>
-                `)
-                .join('');
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        console.log(`${type.toUpperCase()}: ${message}`);
+        window.addEventListener("beforeunload", () => this.cleanup());
     }
 
     cleanup() {
@@ -339,6 +291,6 @@ class SentinelaDashboard {
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-    window.sentinelaDashboard = new SentinelaDashboard();
+document.addEventListener("DOMContentLoaded", () => {
+    const dashboard = new SentinelaDashboard();
 });
