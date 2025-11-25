@@ -5,110 +5,159 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Sentinela</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- ✅ Chart.js para gráficos -->
+    <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- ✅ Biblioteca MQTT (ESSENCIAL) -->
+    <!-- Biblioteca MQTT -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    
-    <!-- Font Awesome icons via CSS -->
-    <style>
-        /* Simple icon replacements */
-        .fas.fa-shield-alt::before { content: "🛡️"; }
-        .fas.fa-wifi::before { content: "📶"; }
-        .fas.fa-wifi-slash::before { content: "📵"; }
-        .fas.fa-thermometer-half::before { content: "🌡️"; }
-        .fas.fa-tint::before { content: "💧"; }
-        .fas.fa-bolt::before { content: "⚡"; }
-        .fas.fa-ethernet::before { content: "🌐"; }
-        .fas.fa-circle::before { content: "●"; }
-        .fas.fa-chart-line::before { content: "📈"; }
-        .fas.fa-chart-area::before { content: "📊"; }
-        .fas { font-style: normal; }
-        
-        /* ✅ Estilo adicional para status do MQTT */
-        .kafka-status {
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .kafka-status.connected {
-            background: #d4edda;
-            color: #155724;
-        }
-        .kafka-status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
-        }
-    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <h1><i class="fas fa-shield-alt"></i> Dashboard Sentinela</h1>
-            <div class="connection-status" id="connectionStatus">
-                <i class="fas fa-wifi"></i>
-                <span>Conectando...</span>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="user-profile">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h3>ADMIN</h3>
+                    <p>admin@sentinela.com</p>
+                </div>
             </div>
-        </header>
 
-        <main class="dashboard-main">
-            <section class="metrics-grid">
-                <div class="metric-card" id="card-temperature">
-                    <div class="metric-icon"><i class="fas fa-thermometer-half"></i></div>
-                    <div class="metric-title">Temperatura</div>
-                    <div class="metric-value" id="temperatureValue">--</div>
-                    <div class="metric-status" id="temperatureStatus">--</div>
-                </div>
-                <div class="metric-card" id="card-humidity">
-                    <div class="metric-icon"><i class="fas fa-tint"></i></div>
-                    <div class="metric-title">Umidade</div>
-                    <div class="metric-value" id="humidityValue">--</div>
-                    <div class="metric-status" id="humidityStatus">--</div>
-                </div>
-                <div class="metric-card" id="card-network">
-                    <div class="metric-icon"><i class="fas fa-ethernet"></i></div>
-                    <div class="metric-title">Rede</div>
-                    <div class="metric-value" id="networkValue">--</div>
-                    <div class="metric-status" id="networkStatus">--</div>
-                </div>
-                <div class="metric-card" id="card-voltage">
-                    <div class="metric-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="metric-title">Energia</div>
-                    <div class="metric-value" id="voltageValue">--</div>
-                    <div class="metric-status" id="voltageStatus">--</div>
-                </div>
-            </section>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-thermometer-half"></i>
+                        <span>Sensores</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Histórico</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-wifi"></i>
+                        <span>Conectividade</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-cogs"></i>
+                        <span>Configurações</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
 
-            <section class="charts-section">
-                <div class="chart-card">
-                    <h2><i class="fas fa-chart-line"></i> Temperatura</h2>
-                    <canvas id="temperatureChart"></canvas>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1>Dashboard Sentinela</h1>
+                <div class="header-actions">
+                    <div class="connection-status" id="connectionStatus">
+                        <i class="fas fa-wifi"></i>
+                        <span>Conectando...</span>
+                    </div>
+                    <button class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
                 </div>
-                <div class="chart-card">
-                    <h2><i class="fas fa-chart-area"></i> Umidade</h2>
-                    <canvas id="humidityChart"></canvas>
-                </div>
-                <div class="chart-card">
-                    <h2><i class="fas fa-bolt"></i> Tensão</h2>
-                    <canvas id="voltageChart"></canvas>
-                </div>
-            </section>
+            </header>
 
-            <section class="logs-section">
-                <h2><i class="fas fa-ethernet"></i> Logs de Eventos</h2>
-                <div class="logs-container" id="logsContainer">
-                    <!-- Logs dinâmicos -->
-                </div>
-            </section>
+            <div class="content-wrapper">
+                <!-- Status Cards -->
+                <section class="kpi-section">
+                    <div class="kpi-card temperature-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Temperatura</span>
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="kpi-value"><span id="tempKPI">--</span>°C</div>
+                    </div>
+                    
+                    <div class="kpi-card humidity-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Umidade</span>
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="kpi-value"><span id="humidityKPI">--</span>%</div>
+                    </div>
+                    
+                    <div class="kpi-card network-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Rede</span>
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="kpi-value" id="networkKPI">Offline</div>
+                    </div>
+                    
+                    <div class="kpi-card energy-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Energia</span>
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="kpi-value"><span id="voltageKPI">--</span>V</div>
+                    </div>
+                </section>
+
+                <!-- Charts and Metrics -->
+                <section class="dashboard-grid">
+                    <div class="chart-card main-chart">
+                        <div class="chart-header">
+                            <h3>⚡ Monitoramento de Tensão</h3>
+                            <div class="chart-controls">
+                                <span class="period-label">Tempo Real</span>
+                                <select class="period-select">
+                                    <option>Última hora</option>
+                                    <option>Últimas 6 horas</option>
+                                    <option>Últimas 24 horas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <canvas id="mainChart"></canvas>
+                    </div>
+
+                    <div class="chart-card area-chart">
+                        <div class="chart-header">
+                            <h3>🌐 Status do Sistema</h3>
+                        </div>
+                        <canvas id="tempHumidityChart"></canvas>
+                    </div>
+
+                    <div class="chart-card environment-chart">
+                        <div class="chart-header">
+                            <h3>🌡️ Ambiente do Data Center</h3>
+                        </div>
+                        <canvas id="environmentChart"></canvas>
+                    </div>
+
+
+
+                    <div class="stats-card">
+                        <div class="stats-header">
+                            <div class="stats-percentage" id="systemHealth">--%</div>
+                        </div>
+                        <div class="stats-details">
+                            <p>Sistema Aguardando</p>
+                            <p>Conectando Sensores</p>
+                            <p id="lastDataReceived">Sem conexão com hardware</p>
+                        </div>
+                        <button class="check-now-btn" onclick="location.reload()">Atualizar</button>
+                    </div>
+                </section>
+
+
+            </div>
         </main>
-
-        <footer class="dashboard-footer">
-            <p>Última atualização: <span id="lastUpdate">--</span></p>
-            <p>Sistema Sentinela v1.0 - Conectado via MQTT</p>
-        </footer>
     </div>
 
     <!-- ✅ Script.js DEVE vir DEPOIS das bibliotecas -->
