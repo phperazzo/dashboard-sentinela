@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Sentinela</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Verificação de autenticação -->
+    <script>
+        // Verificar autenticação antes de carregar o dashboard
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    // Não autenticado, redirecionar para login
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Usuário autenticado:', data.user);
+                
+                // Atualizar informações do usuário na interface
+                if (data.user) {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const userNameElement = document.querySelector('.profile-info h3');
+                        const userRoleElement = document.querySelector('.profile-info p');
+                        
+                        if (userNameElement && data.user.name) {
+                            userNameElement.textContent = data.user.name;
+                        }
+                        if (userRoleElement && data.user.role) {
+                            userRoleElement.textContent = data.user.role;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro na verificação de autenticação:', error);
+                // Em caso de erro, redirecionar para login por segurança
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Executar verificação
+        checkAuth();
+    </script>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="user-profile">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="profile-info">
+                    <h3>Admin</h3>
+                    <p>Administrador</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-thermometer-half"></i>
+                        <span>Sensores</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Relatórios</span>
+                    </li>
+                    <li class="nav-item">
+                        <i class="fas fa-bell"></i>
+                        <span>Alertas</span>
+                    </li>
+                    <li class="nav-item" onclick="window.location.href='/settings.html'">
+                        <i class="fas fa-cog"></i>
+                        <span>Configurações</span>
+                    </li>
+                    <li class="nav-item" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sair</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Dashboard Sentinela</h1>
+                <div class="header-actions">
+                    <div class="connection-status" id="connectionStatus">
+                        <i class="fas fa-wifi"></i>
+                        <span>Conectando...</span>
+                    </div>
+                    <div class="connection-status" id="mqttStatus">
+                        <i class="fas fa-database"></i>
+                        <span>MQTT Offline</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- KPI Cards -->
+                <section class="kpi-section">
+                    <div class="kpi-card temperature-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Temperatura</span>
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="kpi-value" id="tempValue">--°C</div>
+                    </div>
+
+                    <div class="kpi-card humidity-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Umidade</span>
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="kpi-value" id="humidityValue">--%</div>
+                    </div>
+
+                    <div class="kpi-card network-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Rede</span>
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="kpi-value" id="networkValue">Offline</div>
+                    </div>
+
+                    <div class="kpi-card energy-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Energia</span>
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="kpi-value" id="energyValue">Offline</div>
+                    </div>
+                </section>
+
+                <!-- Charts and Metrics -->
+                <section class="dashboard-grid">
+                    <div class="chart-card main-chart">
+                        <div class="chart-header">
+                            <h3>⚡ Monitoramento de Tensão</h3>
+                            <div class="chart-controls">
+                                <span class="period-label">Tempo Real</span>
+                                <select class="period-select">
+                                    <option>Última hora</option>
+                                    <option>Últimas 6 horas</option>
+                                    <option>Últimas 24 horas</option>
+                                </select>
+                            </div>
+                        </div>
+                        <canvas id="mainChart"></canvas>
+                    </div>
+
+                    <div class="chart-card area-chart">
+                        <div class="chart-header">
+                            <h3>🌐 Status do Sistema</h3>
+                        </div>
+                        <canvas id="tempHumidityChart"></canvas>
+                    </div>
+
+                    <div class="chart-card environment-chart">
+                        <div class="chart-header">
+                            <h3>🌡️ Ambiente do Data Center</h3>
+                        </div>
+                        <canvas id="environmentChart"></canvas>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-header">
+                            <div class="stats-percentage" id="systemHealth">95%</div>
+                        </div>
+                        <div class="stats-details">
+                            <p>Sistema Online</p>
+                            <p>Sensores Ativos</p>
+                            <p id="lastDataReceived">Aguardando dados...</p>
+                        </div>
+                        <button class="check-now-btn" onclick="location.reload()">Atualizar</button>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Função de logout
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                // Limpar localStorage
+                localStorage.removeItem('authToken');
+                
+                // Redirecionar para login
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro no logout:', error);
+                // Mesmo em caso de erro, redirecionar
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
+
+    <!-- ✅ Script.js DEVE vir DEPOIS das bibliotecas -->
+    <script src="script.js"></script>
+</body>
+</html>

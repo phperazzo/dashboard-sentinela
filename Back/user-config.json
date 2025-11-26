@@ -1,0 +1,12 @@
+{
+  "username": "admin",
+  "password": "$2b$10$Hr.UdTCPVLm4aJorG.S.AO6Q0WfSOf5uEgPZEyZNV9OTjvPdQIpKK",
+  "name": "Administrador",
+  "role": "Administrador do Sistema",
+  "lastPasswordChange": "2025-11-26T12:13:47.800Z",
+  "permissions": [
+    "read",
+    "write",
+    "admin"
+  ]
+}

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinela - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-dark: #2c3e50;
+            --primary-blue: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --text-light: #7f8c8d;
+            --border-light: #e9ecef;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 50px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2.5rem;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+
+        .login-subtitle {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-group {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 50px 16px 50px;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-blue);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .input-wrapper .form-input:focus ~ .form-icon {
+            color: var(--primary-blue);
+        }
+
+        /* Garantir alinhamento perfeito dos ícones */
+        .input-wrapper {
+            height: 56px; /* Altura fixa para consistência */
+        }
+
+        .form-icon,
+        .password-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+        }
+
+        .form-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 1.1rem;
+            pointer-events: none;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+
+        .form-input:focus ~ .form-icon {
+            color: var(--primary-blue);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-blue);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: -10px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-blue);
+        }
+
+
+
+        .login-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button.loading {
+            color: transparent;
+        }
+
+        .login-button.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .connectivity-indicator {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connectivity-indicator i {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 40px 30px;
+                margin: 10px;
+            }
+
+            .login-title {
+                font-size: 1.7rem;
+            }
+
+            .logo {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+        }
+
+        /* Animações */
+        .login-container {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            animation: slideIn 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1 class="login-title">Sentinela</h1>
+            <p class="login-subtitle">Sistema de Monitoramento de Data Center</p>
+        </div>
+
+        <form class="login-form" id="loginForm">
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="form-group">
+                <label class="form-label" for="username">Usuário</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-input" 
+                        placeholder="Digite seu usuário"
+                        value="admin"
+                        required
+                        autocomplete="username"
+                    >
+                    <i class="fas fa-user form-icon"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Senha</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-input" 
+                        placeholder="Digite sua senha"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <i class="fas fa-lock form-icon"></i>
+                    <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                </div>
+            </div>
+
+            <div class="form-options">
+                <label class="remember-me">
+                    <input type="checkbox" id="rememberMe" name="rememberMe">
+                    <span>Lembrar-me</span>
+                </label>
+            </div>
+
+            <button type="submit" class="login-button" id="loginButton">
+                Entrar
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>&copy; 2025 Sentinela. Todos os direitos reservados.</p>
+        </div>
+    </div>
+
+    <script>
+        class LoginManager {
+            constructor() {
+                this.form = document.getElementById('loginForm');
+                this.usernameInput = document.getElementById('username');
+                this.passwordInput = document.getElementById('password');
+                this.loginButton = document.getElementById('loginButton');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.togglePassword = document.getElementById('togglePassword');
+                
+                // Proteção contra ataques de força bruta
+                this.failedAttempts = 0;
+                this.maxAttempts = 5;
+                this.lockoutTime = 300000; // 5 minutos
+                this.isLocked = false;
+                
+                // Status de conectividade
+                this.isOnline = navigator.onLine;
+                
+                this.init();
+            }
+
+            init() {
+                // Carregar tentativas falhadas do localStorage
+                const storedAttempts = localStorage.getItem('failedAttempts');
+                if (storedAttempts) {
+                    this.failedAttempts = parseInt(storedAttempts);
+                }
+                
+                // Verificar se está bloqueado
+                this.checkLockout();
+                
+                this.form.addEventListener('submit', this.handleLogin.bind(this));
+                this.togglePassword.addEventListener('click', this.togglePasswordVisibility.bind(this));
+                
+                // Listeners de conectividade
+                window.addEventListener('online', this.handleOnline.bind(this));
+                window.addEventListener('offline', this.handleOffline.bind(this));
+                
+                // Verificar se já está logado
+                this.checkAuthStatus();
+                
+                // Limpar campos ao carregar por segurança
+                this.passwordInput.value = '';
+                
+                // Mostrar status inicial de conectividade
+                this.updateConnectivityStatus();
+            }
+
+            async checkAuthStatus() {
+                try {
+                    const response = await fetch('/api/auth/check', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+
+                    if (response.ok) {
+                        // Já está logado, redirecionar para dashboard
+                        window.location.href = '/dashboard.html';
+                    }
+                } catch (error) {
+                    console.log('Usuário não autenticado');
+                }
+            }
+
+            togglePasswordVisibility() {
+                const type = this.passwordInput.type === 'password' ? 'text' : 'password';
+                this.passwordInput.type = type;
+                
+                this.togglePassword.classList.toggle('fa-eye');
+                this.togglePassword.classList.toggle('fa-eye-slash');
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.classList.add('show');
+                
+                // Diferentes efeitos para diferentes tipos de erro
+                if (message.includes('⚠️') || message.includes('conexão')) {
+                    // Erro de rede - efeito mais suave
+                    this.errorMessage.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+                    this.errorMessage.style.color = '#856404';
+                    this.errorMessage.style.borderColor = 'rgba(255, 193, 7, 0.2)';
+                } else {
+                    // Erro de credenciais - efeito padrão
+                    this.errorMessage.style.backgroundColor = 'rgba(231, 76, 60, 0.1)';
+                    this.errorMessage.style.color = '#e74c3c';
+                    this.errorMessage.style.borderColor = 'rgba(231, 76, 60, 0.2)';
+                    
+                    // Shake effect apenas para erros de credenciais
+                    this.form.style.animation = 'shake 0.5s ease-in-out';
+                    setTimeout(() => {
+                        this.form.style.animation = '';
+                    }, 500);
+                }
+            }
+
+            hideError() {
+                this.errorMessage.classList.remove('show');
+            }
+
+            setLoading(loading) {
+                if (loading) {
+                    this.loginButton.classList.add('loading');
+                    this.loginButton.disabled = true;
+                } else {
+                    this.loginButton.classList.remove('loading');
+                    this.loginButton.disabled = false;
+                }
+            }
+
+            checkLockout() {
+                const lockoutEnd = localStorage.getItem('lockoutEnd');
+                if (lockoutEnd && Date.now() < parseInt(lockoutEnd)) {
+                    this.isLocked = true;
+                    const remainingTime = Math.ceil((parseInt(lockoutEnd) - Date.now()) / 1000 / 60);
+                    this.showError(`Conta bloqueada. Tente novamente em ${remainingTime} minutos.`);
+                    return true;
+                }
+                this.isLocked = false;
+                return false;
+            }
+
+            lockAccount() {
+                this.isLocked = true;
+                const lockoutEnd = Date.now() + this.lockoutTime;
+                localStorage.setItem('lockoutEnd', lockoutEnd.toString());
+                this.showError('Muitas tentativas falhadas. Conta bloqueada por 5 minutos.');
+            }
+
+            recordFailedAttempt(isNetworkError = false) {
+                // Não contar tentativas se for erro de rede
+                if (isNetworkError) {
+                    return;
+                }
+                
+                this.failedAttempts++;
+                localStorage.setItem('failedAttempts', this.failedAttempts.toString());
+                
+                if (this.failedAttempts >= this.maxAttempts) {
+                    this.lockAccount();
+                }
+            }
+
+            clearFailedAttempts() {
+                this.failedAttempts = 0;
+                localStorage.removeItem('failedAttempts');
+                localStorage.removeItem('lockoutEnd');
+            }
+
+            handleOnline() {
+                this.isOnline = true;
+                this.updateConnectivityStatus();
+                console.log('Conexão restaurada');
+            }
+
+            handleOffline() {
+                this.isOnline = false;
+                this.updateConnectivityStatus();
+                console.log('Conexão perdida');
+            }
+
+            updateConnectivityStatus() {
+                // Criar ou atualizar indicador de conectividade
+                let indicator = document.querySelector('.connectivity-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'connectivity-indicator';
+                    this.form.insertBefore(indicator, this.form.firstChild);
+                }
+
+                if (!this.isOnline) {
+                    indicator.innerHTML = `
+                        <i class="fas fa-wifi" style="color: #e74c3c;"></i>
+                        <span>Sem conexão - Tentativas não serão contabilizadas</span>
+                    `;
+                    indicator.style.display = 'block';
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
+
+            isNetworkError(error) {
+                // Detectar diferentes tipos de erro de rede
+                if (!this.isOnline) return true;
+                
+                if (error instanceof TypeError && error.message.includes('fetch')) {
+                    return true;
+                }
+                
+                if (error.name === 'NetworkError' || 
+                    error.message.includes('Network') ||
+                    error.message.includes('fetch')) {
+                    return true;
+                }
+                
+                return false;
+            }
+
+            async testConnectivity() {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+                    
+                    const response = await fetch('/api/auth/check', {
+                        method: 'HEAD',
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    return true;
+                } catch (error) {
+                    console.log('Teste de conectividade falhou:', error.message);
+                    return false;
+                }
+            }
+
+            async handleLogin(event) {
+                event.preventDefault();
+                this.hideError();
+
+                // Verificar se a conta está bloqueada
+                if (this.checkLockout()) {
+                    return;
+                }
+
+                // Teste rápido de conectividade se offline
+                if (!this.isOnline) {
+                    const isConnected = await this.testConnectivity();
+                    if (!isConnected) {
+                        this.showError('⚠️ Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+                        return;
+                    }
+                    // Atualizar status se conexão foi restaurada
+                    this.isOnline = true;
+                    this.updateConnectivityStatus();
+                }
+
+                const username = this.usernameInput.value.trim();
+                const password = this.passwordInput.value;
+                const rememberMe = document.getElementById('rememberMe').checked;
+
+                // Validação de entrada mais rigorosa
+                if (!username || !password) {
+                    this.showError('Por favor, preencha todos os campos.');
+                    return;
+                }
+
+                // Sanitizar entrada
+                if (username.length > 50 || password.length > 100) {
+                    this.showError('Credenciais muito longas.');
+                    return;
+                }
+
+                this.setLoading(true);
+
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            username,
+                            password,
+                            rememberMe
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Login bem-sucedido - limpar tentativas falhadas
+                        this.clearFailedAttempts();
+                        
+                        // Não imprimir informações sensíveis no console
+                        console.log('Login realizado com sucesso');
+                        
+                        // Token gerenciado via cookie HttpOnly - mais seguro
+                        // Não armazenar token no localStorage por segurança
+                        
+                        // Limpar campos por segurança
+                        this.passwordInput.value = '';
+                        
+                        // Redirecionar para dashboard
+                        window.location.href = '/dashboard.html';
+                    } else {
+                        // Registrar tentativa falhada (apenas se não for erro de rede)
+                        this.recordFailedAttempt(false);
+                        
+                        // Erro no login - mensagem genérica por segurança
+                        this.showError('Credenciais inválidas. Tente novamente.');
+                        
+                        // Limpar senha por segurança
+                        this.passwordInput.value = '';
+                    }
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    
+                    // Verificar se é erro de rede
+                    const isNetwork = this.isNetworkError(error);
+                    
+                    if (isNetwork || !this.isOnline) {
+                        // Não contar tentativas para erros de rede
+                        this.showError('⚠️ Sem conexão com o servidor. Verifique sua internet e tente novamente.');
+                        console.log('Erro de rede detectado - tentativa não contabilizada');
+                    } else {
+                        // Erro genérico - contar tentativa
+                        this.recordFailedAttempt(false);
+                        this.showError('Erro inesperado. Tente novamente.');
+                    }
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+        }
+
+        // Adicionar estilo do shake
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginManager();
+        });
+    </script>
+</body>
+</html>

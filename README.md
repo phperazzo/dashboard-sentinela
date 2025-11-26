@@ -1,19 +1,23 @@
 # Dashboard Sentinela
 
-Dashboard web para monitoramento em tempo real do hardware Sentinela via conexão em nuvem.
+Sistema completo de monitoramento para data center com autenticação segura, dashboard em tempo real e simulador de sensores integrado.
 
 ## 🚀 Funcionalidades
 
-- **Monitoramento em Tempo Real**: Visualização ao vivo dos dados do hardware Sentinela
-- **Métricas Principais**:
-  - 🌡️ Temperatura ambiente
-  - 💧 Umidade relativa do ar
-  - ⚡ Tensão da rede elétrica e variação
-  - 🌐 Status da conexão Ethernet
-- **Gráficos Históricos**: Visualização temporal dos dados de temperatura e umidade
-- **Interface Responsiva**: Funciona em desktop, tablet e mobile
-- **Status de Conexão**: Indicador visual do estado da conexão com o hardware
-- **Atualizações Automáticas**: Dados atualizados a cada 5 segundos
+- **🔐 Sistema de Autenticação**: Login seguro com JWT e proteção contra ataques
+- **📊 Dashboard em Tempo Real**: Monitoramento ao vivo dos sensores do data center
+- **⚙️ Configurações**: Interface para alteração de senhas e configurações do sistema
+- **📈 Gráficos Interativos**: Visualização temporal com Chart.js
+- **🔄 Dados Simulados**: Simulador integrado para desenvolvimento e testes
+- **📱 Interface Responsiva**: Funciona em desktop, tablet e mobile
+- **🛡️ Segurança Avançada**: Rate limiting, headers de segurança, validação rigorosa
+
+### Métricas Monitoradas:
+- 🌡️ **Temperatura ambiente**
+- 💧 **Umidade relativa do ar**
+- ⚡ **Tensão da rede elétrica**
+- 🌐 **Status da rede/energia**
+- 📡 **Conectividade MQTT**
 
 ## 🏗️ Arquitetura
 
@@ -32,48 +36,93 @@ Dashboard Sentinela
 
 ```
 dashboard-sentinela/
-├── index.html          # Página principal do dashboard
-├── styles.css          # Estilos e tema visual
-├── script.js           # Lógica do dashboard e conexão
-├── config.json         # Configurações da aplicação
-├── sw.js              # Service Worker para funcionalidade offline
-└── README.md          # Documentação
+├── 📄 login.html           # Tela de autenticação
+├── 📄 dashboard.html       # Dashboard principal
+├── 📄 settings.html        # Configurações do sistema
+├── 🎨 styles.css          # Estilos globais
+├── ⚙️ script.js           # Lógica do dashboard
+├── 📋 config.json         # Configurações da aplicação
+├── 🔧 sw.js               # Service Worker
+├── 📚 README.md           # Documentação
+├── 📄 LOGIN_CREDENTIALS.md # Credenciais de acesso
+└── 📁 Back/               # Servidor Backend
+    ├── 🚀 server.js       # Servidor principal
+    ├── 📦 package.json    # Dependências Node.js
+    ├── 🔑 user-config.json # Configuração do usuário
+    └── 🛠️ *.js            # Scripts auxiliares
 ```
 
-## 🚀 Como Usar
+## 🚀 Como Iniciar o Sistema
 
-### 1. Configuração Básica
+### Pré-requisitos
+- **Node.js** (versão 14 ou superior)
+- **npm** ou **yarn**
+- Terminal/Command Prompt
 
-1. **Clone ou baixe os arquivos** para seu servidor web
-2. **Configure a conexão** editando o arquivo `config.json`:
-   ```json
-   {
-     "cloud": {
-       "apiEndpoint": "https://sua-api.sentinela.cloud/v1",
-       "apiKey": "SUA_CHAVE_API",
-       "deviceId": "ID_DO_SEU_DISPOSITIVO"
-     }
-   }
-   ```
+### 1. Instalação das Dependências
 
-### 2. Servindo a Aplicação
-
-#### Servidor HTTP Simples (Python)
 ```bash
-# Python 3
-python -m http.server 8000
+# Navegue até a pasta do backend
+cd Back/
 
-# Python 2
-python -m SimpleHTTPServer 8000
+# Instale as dependências
+npm install
 ```
 
-#### Servidor HTTP (Node.js)
+### 2. Iniciando o Servidor
+
 ```bash
-npx http-server
+# Na pasta Back/
+node server.js
 ```
 
-#### Servidor Apache/Nginx
-Coloque os arquivos no diretório do servidor web e acesse via navegador.
+O servidor iniciará na porta **3000** e você verá a mensagem:
+```
+🚀 Servidor HTTP rodando na porta 3000 em 0.0.0.0
+```
+
+### 3. Acessando a Aplicação
+
+Abra seu navegador e acesse:
+```
+http://localhost:3000
+```
+
+### 4. Login no Sistema
+
+Use as credenciais padrão:
+- **Usuário:** `admin`
+- **Senha:** `admin`
+
+### 5. Comandos Úteis
+
+#### Parar o Servidor
+```bash
+# No terminal onde o servidor está rodando
+Ctrl + C
+```
+
+#### Forçar Parada (se necessário)
+```bash
+# Em outro terminal
+pkill -f "node.*server.js"
+```
+
+#### Iniciar com npm (alternativo)
+```bash
+# Se configurado no package.json
+npm start
+```
+
+### 6. Estrutura de Inicialização
+
+```
+1. 📁 cd Back/
+2. 📦 npm install
+3. 🚀 node server.js
+4. 🌐 http://localhost:3000
+5. 🔑 Login: admin/admin
+```
 
 ### 3. Configuração da Conexão Cloud
 
@@ -175,12 +224,22 @@ Edite o arquivo `config.json`:
 
 ### Tecnologias Utilizadas
 
-- **HTML5**: Estrutura da página
-- **CSS3**: Estilos e animações
+#### Frontend
+- **HTML5**: Estrutura das páginas
+- **CSS3**: Estilos e animações responsivas
 - **JavaScript ES6+**: Lógica da aplicação
-- **Chart.js**: Gráficos interativos
-- **Font Awesome**: Ícones
+- **Chart.js**: Gráficos interativos em tempo real
+- **Font Awesome**: Biblioteca de ícones
 - **Service Worker**: Funcionalidade offline
+
+#### Backend  
+- **Node.js**: Runtime JavaScript
+- **Express.js**: Framework web
+- **JWT**: Autenticação segura
+- **bcrypt**: Hash de senhas
+- **WebSocket**: Comunicação em tempo real
+- **MQTT**: Protocolo de sensores IoT
+- **express-rate-limit**: Proteção contra ataques
 
 ### Estrutura do Código JavaScript
 
@@ -205,28 +264,80 @@ O dashboard é totalmente responsivo e funciona em:
 
 ## 🔒 Segurança
 
-- **HTTPS Recomendado**: Use sempre HTTPS em produção
-- **API Key**: Mantenha sua chave de API segura
-- **CORS**: Configure CORS adequadamente no servidor
-- **Rate Limiting**: Implemente limitação de taxa na API
+### Recursos de Segurança Implementados
+
+- **🛡️ Autenticação JWT**: Tokens seguros com expiração
+- **🔐 Hash de Senhas**: bcrypt com salt rounds
+- **⏱️ Rate Limiting**: Proteção contra força bruta (5 tentativas/15min)
+- **🍪 Cookies Seguros**: HttpOnly, Secure, SameSite
+- **📋 Headers de Segurança**: XSS, Clickjacking, MIME sniffing
+- **🔍 CSP**: Content Security Policy configurado
+- **🧹 Validação Rigorosa**: Sanitização de entrada
+- **🌐 Detecção de Rede**: Proteção inteligente contra bloqueios offline
+- **🔒 Middleware de Proteção**: Múltiplas camadas de segurança
+
+### Configurações Recomendadas para Produção
+
+- **HTTPS**: Use sempre SSL/TLS em produção
+- **Proxy Reverso**: Configure nginx ou similar
+- **Firewall**: Restrinja acesso às portas necessárias
+- **Monitoramento**: Logs de segurança e alertas
+- **Backup**: Configuração regular do user-config.json
 
 ## 🐛 Solução de Problemas
 
-### Dashboard não conecta
-1. Verifique a URL da API no `config.json`
-2. Confirme se a API está funcionando
-3. Verifique as configurações de CORS
-4. Abra o Console do navegador para ver erros
+### Servidor não inicia
+```bash
+# Verifique se o Node.js está instalado
+node --version
 
-### Dados não aparecem
-1. Confirme o formato dos dados da API
-2. Verifique se a chave de API está correta
-3. Teste a API diretamente via curl/Postman
+# Verifique se as dependências foram instaladas
+cd Back/ && npm install
 
-### Gráficos não carregam
-1. Verifique se o Chart.js está carregando
-2. Confirme se há dados históricos suficientes
-3. Verifique console do navegador para erros
+# Verifique se a porta 3000 está livre
+netstat -an | grep 3000
+```
+
+### Login não funciona
+1. **Credenciais**: Use `admin`/`admin`
+2. **Hash da senha**: Arquivo `user-config.json` deve ter hash válido
+3. **Rate limiting**: Aguarde 15 minutos se bloqueado
+4. **Conexão**: Verifique se servidor está rodando
+
+### Dashboard não carrega dados
+1. **WebSocket**: Verifique conexão no console do navegador
+2. **MQTT**: Erros de timeout são normais (simulador)
+3. **Gráficos**: Aguarde alguns segundos para dados aparecerem
+4. **Console**: Abra F12 para ver erros JavaScript
+
+### Erros comuns
+```bash
+# Porta já em uso
+Error: listen EADDRINUSE :::3000
+Solução: pkill -f "node.*server.js"
+
+# Módulos não encontrados
+Cannot find module 'express'
+Solução: npm install
+
+# Permissões
+EACCES: permission denied
+Solução: Use porta > 1024 ou sudo (não recomendado)
+```
+
+### Comandos úteis para debug
+```bash
+# Ver processos rodando na porta 3000
+lsof -i :3000
+
+# Logs em tempo real
+tail -f /var/log/nodejs/app.log
+
+# Testar API diretamente
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}'
+```
 
 ## 📄 Licença
 
