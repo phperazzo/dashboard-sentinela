@@ -50,9 +50,20 @@ class SentinelaBackend {
         this.mqttClient.on('message', (topic, message) => {
             let payload;
             try {
-                payload = JSON.parse(message.toString());
+                const messageStr = message.toString();
+                // Validar tamanho máximo da mensagem
+                if (messageStr.length > 10000) {
+                    console.warn('Mensagem MQTT muito grande, ignorando');
+                    return;
+                }
+                payload = JSON.parse(messageStr);
+                // Validar estrutura básica
+                if (typeof payload !== 'object' || payload === null) {
+                    throw new Error('Payload inválido');
+                }
             } catch (e) {
-                payload = { raw: message.toString() };
+                console.warn('Mensagem MQTT inválida:', e.message);
+                return; // Ignorar mensagens inválidas
             }
             console.log(`📥 MQTT recebido do tópico '${topic}':`, payload);
             this.broadcastToWebSocket({
@@ -78,8 +89,11 @@ class SentinelaBackend {
 
     setupServerAndWebSocket() {
         // Middlewares
-        this.app.use(cors());
-        this.app.use(express.json());
+        this.app.use(cors({
+            origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:8000'],
+            credentials: true
+        }));
+        this.app.use(express.json({ limit: '1mb' }));
 
         // Servir arquivos estáticos do diretório raiz do projeto
         const path = require('path');
@@ -132,8 +146,17 @@ class SentinelaBackend {
         this.server = server;
 
         // WebSocket seguro (WSS) ou normal (WS) na mesma porta do HTTP(S)
-        this.wss = new WebSocket.Server({ server });
-        this.wss.on('connection', (ws) => {
+        this.wss = new WebSocket.Server({ 
+            server,
+            maxClients: 10, // Limite de conexões
+            clientTracking: true
+        });
+        this.wss.on('connection', (ws, req) => {
+            // Rate limiting simples
+            if (this.wsClients.size >= 10) {
+                ws.close(1013, 'Muitas conexões');
+                return;
+            }
             console.log('✅ Novo cliente WebSocket conectado');
             this.wsClients.add(ws);
 

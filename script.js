@@ -220,10 +220,16 @@ class SentinelaDashboard {
         if (statusElement) {
             if (connected) {
                 statusElement.className = "mqtt-status connected";
-                statusElement.innerHTML = "<i class=\"fas fa-database\"></i> MQTT Online";
+                statusElement.textContent = "MQTT Online";
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-database';
+                statusElement.insertBefore(icon, statusElement.firstChild);
             } else {
                 statusElement.className = "mqtt-status disconnected";
-                statusElement.innerHTML = "<i class=\"fas fa-database\"></i> MQTT Offline";
+                statusElement.textContent = "MQTT Offline";
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-database';
+                statusElement.insertBefore(icon, statusElement.firstChild);
             }
         }
     }
