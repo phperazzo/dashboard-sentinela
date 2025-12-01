@@ -101,10 +101,14 @@ class SentinelaBackend {
         // Rate limiting geral
         const generalLimiter = rateLimit({
             windowMs: 15 * 60 * 1000, // 15 minutos
-            max: 100, // máximo 100 requests por IP
+            max: 300, // máximo 300 requests por IP (aumentado para suportar polling)
             message: {
                 success: false,
                 message: 'Muitas requisições. Tente novamente em 15 minutos.'
+            },
+            skip: (req) => {
+                // Exceção para APIs de leitura (não modificam dados)
+                return req.path.startsWith('/api/readings/') || req.path.startsWith('/api/data/');
             }
         });
 
@@ -654,6 +658,7 @@ class SentinelaBackend {
 
     broadcastToWebSocket(message) {
         const messageString = JSON.stringify(message);
+        console.log('📤 Broadcasting WebSocket:', message.type, this.wsClients.size, 'clientes');
         this.wsClients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(messageString);

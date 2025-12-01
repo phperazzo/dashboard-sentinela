@@ -7,6 +7,13 @@ class SentinelaDashboard {
             network: [],      // Status da rede
             timestamps: []
         };
+        
+        // Últimos valores reais para tooltips
+        this.lastRealValues = {
+            latency: 0,
+            voltage: 0,
+            rms: 0
+        };
 
         this.asyncStatus = {
             rede: "desconhecido",
@@ -18,6 +25,10 @@ class SentinelaDashboard {
         this.config = {};
         this.ws = null;
         this.firstDataReceived = false;
+        this.networkStatus = 'online'; // Status da rede: 'online' ou 'offline'
+        this.internetStatus = 'offline'; // Status da internet: 'online' ou 'offline'
+        this.lastDataTimestamp = null;
+        this.internetCheckInterval = null;
         
         this.loadConfig().then(() => {
             this.init();
@@ -41,6 +52,33 @@ class SentinelaDashboard {
         this.initializeCharts();
         this.initializeEmptyDashboard();
         this.connectToWebSocket();
+        this.startInternetMonitoring();
+        this.startPollingData(); // Fallback para quando WebSocket não funciona
+    }
+
+    startPollingData() {
+        // Polling a cada 5 segundos para pegar últimos dados via API
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/readings/all');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.syncData) {
+                        // Processar dados síncronos (latency, voltage, rms)
+                        ['latency', 'voltage', 'rms'].forEach(type => {
+                            if (data.syncData[type] && data.syncData[type].length > 0) {
+                                const latest = data.syncData[type][data.syncData[type].length - 1];
+                                this.processSensorData(latest);
+                            }
+                        });
+                    }
+                } else if (response.status === 429) {
+                    console.warn('⚠️ Rate limit atingido, aguardando...');
+                }
+            } catch (err) {
+                console.error('Erro ao buscar dados via API:', err);
+            }
+        }, 5000);
     }
 
     connectToWebSocket() {
@@ -50,6 +88,7 @@ class SentinelaDashboard {
         } else {
             wsUrl = "ws://" + window.location.host;
         }
+        console.log("🔗 Conectando WebSocket em:", wsUrl);
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
@@ -58,8 +97,8 @@ class SentinelaDashboard {
             this.updateMQTTStatus(true);
         };
 
-        this.ws.onclose = () => {
-            console.warn("WebSocket desconectado");
+        this.ws.onclose = (event) => {
+            console.warn("WebSocket desconectado. Código:", event.code, "Razão:", event.reason);
             this.updateConnectionStatus(false);
             this.updateMQTTStatus(false);
         };
@@ -128,12 +167,8 @@ class SentinelaDashboard {
 
             case "rms":
                 this.updateRealChart("rms", data.value, timeLabel, data.unit || "V");
-                // Pode usar temperatura como placeholder ou criar nova métrica
-                this.updateMetric("temperature", data.value.toFixed(1), { class: "normal", text: "RMS Normal" });
-                break;
-            case "umidade":
-                this.updateRealChart("humidity", data.reading.value, timeLabel, data.reading.unit || "%");
-                this.updateMetric("humidity", data.reading.value.toFixed(1), this.getHumidityStatus(data.reading.value));
+                // Atualizar card de RMS (usando id tempValue temporariamente)
+                this.updateMetric("rms", data.value.toFixed(1), { class: "normal", text: "RMS Normal" });
                 break;
             case "rede":
                 // Processar status da rede (ON/OFF) -> Conectado/Desconectado
@@ -163,6 +198,7 @@ class SentinelaDashboard {
         this.updateLastUpdateTime();
         this.updateKPIValues();
         this.updateSystemHealth();
+        this.updateInternetStatus(true);
     }
 
     updateNetworkKPI(isOnline) {
@@ -195,9 +231,8 @@ class SentinelaDashboard {
     }
 
     initializeEmptyDashboard() {
-        this.updateMetric("temperature", "--", { class: "disabled", text: "Sem dados" });
-        this.updateMetric("humidity", "--", { class: "disabled", text: "Sem dados" });
-        this.updateMetric("network", "--", { class: "disabled", text: "Sem dados" });
+        this.updateMetric("rms", "--", { class: "disabled", text: "Sem dados" });
+        this.updateMetric("latency", "--", { class: "disabled", text: "Sem dados" });
         this.updateMetric("voltage", "--", { class: "disabled", text: "Sem dados" });
         this.updateConnectionStatus(false);
     }
@@ -259,12 +294,6 @@ class SentinelaDashboard {
         console.log(`Métrica ${metricType}: ${value} - ${status.text}`);
     }
 
-    getTemperatureStatus(temp) {
-        if (temp < 0 || temp > 40) return { class: "danger", text: "Temperatura crítica!" };
-        else if (temp < 10 || temp > 30) return { class: "warning", text: "Temperatura elevada" };
-        else return { class: "normal", text: "Temperatura normal" };
-    }
-
     getLatencyStatus(latency) {
         if (latency > 200) return { class: "danger", text: "Latência crítica!" };
         else if (latency > 100) return { class: "warning", text: "Latência alta" };
@@ -275,11 +304,6 @@ class SentinelaDashboard {
         if (voltage < 200 || voltage > 240) return { class: "danger", text: "Voltagem crítica!" };
         else if (voltage < 210 || voltage > 230) return { class: "warning", text: "Voltagem instável" };
         else return { class: "normal", text: "Voltagem normal" };
-    }
-
-    getHumidityStatus(humidity) {
-        if (humidity < 30 || humidity > 80) return { class: "warning", text: "Umidade fora do ideal" };
-        else return { class: "normal", text: "Umidade ideal" };
     }
 
     getNetworkStatusFromValue(value) {
@@ -349,7 +373,12 @@ class SentinelaDashboard {
 
     initMainChart() {
         const ctx = document.getElementById('mainChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.warn('⚠️ Canvas mainChart não encontrado');
+            return;
+        }
+
+        console.log('✅ Inicializando mainChart (gráfico de linhas)');
 
         // Definir altura adequada para o canvas
         ctx.style.height = '400px';
@@ -360,7 +389,7 @@ class SentinelaDashboard {
             data: {
                 labels: [],
                 datasets: [{
-                    label: '⚡ Tensão Elétrica',
+                    label: '📡 Latência',
                     data: [],
                     borderColor: '#667eea',
                     backgroundColor: (context) => {
@@ -385,7 +414,7 @@ class SentinelaDashboard {
                     tension: 0.4,
                     fill: true
                 }, {
-                    label: '💧 Umidade',
+                    label: '⚡ Voltagem',
                     data: [],
                     borderColor: '#4ecdc4',
                     backgroundColor: (context) => {
@@ -406,7 +435,7 @@ class SentinelaDashboard {
                     tension: 0.4,
                     fill: true
                 }, {
-                    label: '⚡ Tensão',
+                    label: '🔌 RMS',
                     data: [],
                     borderColor: '#feca57',
                     backgroundColor: (context) => {
@@ -518,74 +547,42 @@ class SentinelaDashboard {
         ctx.style.width = '100%';
 
         this.charts.tempHumidityChart = new Chart(ctx, {
-            type: 'doughnut',
+            type: 'bar',
             data: {
-                labels: ['Rede', 'Energia', 'Temperatura', 'Umidade'],
+                labels: ['Latência', 'Voltagem', 'RMS'],
                 datasets: [{
-                    label: 'Status dos Sensores',
-                    data: [0, 0, 0, 0],
-                    backgroundColor: [
-                        '#667eea',
-                        '#764ba2', 
-                        '#f093fb',
-                        '#f5576c'
-                    ],
-                    borderColor: '#ffffff',
-                    borderWidth: 4,
-                    hoverBorderWidth: 6,
-                    borderColor: '#fff',
-                    borderWidth: 4,
-                    hoverOffset: 8,
-                    cutout: '60%'
-                }, {
-                    label: '💧 Umidade',
-                    data: [],
-                    borderColor: '#4ecdc4',
+                    label: 'Saúde do Sistema (%)',
+                    data: [0, 0, 0], // Inicia zerado até receber dados reais
                     backgroundColor: (context) => {
-                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, 300);
-                        gradient.addColorStop(0, 'rgba(78, 205, 196, 0.3)');
-                        gradient.addColorStop(1, 'rgba(78, 205, 196, 0.05)');
-                        return gradient;
+                        const value = context.parsed.x;
+                        if (value >= 90) return 'rgba(39, 174, 96, 0.85)';   // Verde escuro: Ótimo
+                        if (value >= 75) return 'rgba(46, 204, 113, 0.85)';  // Verde claro: Bom
+                        if (value >= 50) return 'rgba(241, 196, 15, 0.85)';  // Amarelo: Atenção
+                        if (value >= 30) return 'rgba(230, 126, 34, 0.85)';  // Laranja: Preocupante
+                        return 'rgba(231, 76, 60, 0.85)'; // Vermelho: Crítico
                     },
-                    borderWidth: 3,
-                    pointRadius: 5,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: '#4ecdc4',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: '#4ecdc4',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    yAxisID: 'y1'
+                    borderColor: (context) => {
+                        const value = context.parsed.x;
+                        if (value >= 90) return '#27ae60';
+                        if (value >= 75) return '#2ecc71';
+                        if (value >= 50) return '#f1c40f';
+                        if (value >= 30) return '#e67e22';
+                        return '#e74c3c';
+                    },
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barThickness: 40
                 }]
             },
             options: {
+                indexAxis: 'y', // Barras horizontais
                 responsive: true,
                 maintainAspectRatio: false,
-                resizeDelay: 0,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                elements: {
-                    point: {
-                        radius: 0,
-                        hoverRadius: 8,
-                        hitRadius: 20
-                    },
-                    line: {
-                        tension: 0.4,
-                        borderJoinStyle: 'round',
-                        borderCapStyle: 'round'
-                    }
-                },
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Aguardando dados do sistema...',
-                        color: '#95a5a6',
+                        text: 'Indicadores de Saúde',
+                        color: '#2c3e50',
                         font: {
                             size: 16,
                             weight: '600',
@@ -594,18 +591,7 @@ class SentinelaDashboard {
                         padding: 20
                     },
                     legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            font: {
-                                size: 13,
-                                weight: '600'
-                            },
-                            color: '#2c3e50'
-                        }
+                        display: false
                     },
                     tooltip: {
                         backgroundColor: 'rgba(44, 62, 80, 0.95)',
@@ -615,89 +601,62 @@ class SentinelaDashboard {
                         borderWidth: 1,
                         cornerRadius: 12,
                         padding: 15,
-                        titleFont: {
-                            size: 13,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 12
-                        },
                         callbacks: {
                             label: function(context) {
-                                const label = context.dataset.label || '';
-                                const value = context.parsed.y;
-                                const unit = context.datasetIndex === 0 ? '°C' : '%';
-                                return `${label}: ${value.toFixed(1)}${unit}`;
+                                const value = context.parsed.x;
+                                let status = 'Crítico';
+                                let icon = '🔴';
+                                if (value >= 90) {
+                                    status = 'Ótimo';
+                                    icon = '🟢';
+                                } else if (value >= 75) {
+                                    status = 'Bom';
+                                    icon = '🟢';
+                                } else if (value >= 50) {
+                                    status = 'Atenção';
+                                    icon = '🟡';
+                                } else if (value >= 30) {
+                                    status = 'Preocupante';
+                                    icon = '🟠';
+                                }
+                                return `${icon} Saúde: ${value.toFixed(0)}% (${status})`;
                             }
                         }
                     }
                 },
                 scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Temperatura (°C)',
-                            color: '#ff6b6b',
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(255, 107, 107, 0.1)'
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#ff6b6b',
-                            font: {
-                                size: 11
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Umidade (%)',
-                            color: '#4ecdc4',
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            }
-                        },
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#4ecdc4',
-                            font: {
-                                size: 11
-                            }
-                        }
-                    },
                     x: {
-                        grid: {
-                            display: false
-                        },
-                        border: {
-                            display: false
-                        },
+                        min: 0,
+                        max: 100,
                         ticks: {
-                            maxTicksLimit: 6,
+                            callback: function(value) {
+                                return value + '%';
+                            },
                             color: '#7f8c8d',
                             font: {
                                 size: 11
                             }
+                        },
+                        grid: {
+                            color: 'rgba(52, 73, 94, 0.1)'
+                        },
+                        border: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#2c3e50',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        },
+                        grid: {
+                            display: false
+                        },
+                        border: {
+                            display: false
                         }
                     }
                 }
@@ -731,17 +690,16 @@ class SentinelaDashboard {
     initializeEmptyKPIs() {
         // Configurar KPIs para aguardar dados reais
         const kpiElements = [
-            { id: 'tempKPI', text: '--' },
-            { id: 'humidityKPI', text: '--' },
-            { id: 'voltageKPI', text: '--' },
-            { id: 'networkKPI', text: 'Aguardando...' }
+            { id: 'tempValue', text: '-- V' },        // RMS
+            { id: 'humidityValue', text: 'Offline' },  // Internet (padrão: Offline até receber dados)
+            { id: 'networkValue', text: '-- ms' },    // Latência
+            { id: 'energyValue', text: '-- V' }       // Voltagem
         ];
 
         kpiElements.forEach(kpi => {
             const element = document.getElementById(kpi.id);
             if (element) {
                 element.textContent = kpi.text;
-                element.style.color = '#95a5a6';
             }
         });
 
@@ -753,27 +711,67 @@ class SentinelaDashboard {
         }
     }
 
+    updateNetworkStatusCard() {
+        const statusKPI = document.getElementById('humidityValue');
+        if (statusKPI) {
+            statusKPI.textContent = this.internetStatus === 'online' ? 'Online' : 'Offline';
+        }
+    }
+
+    startInternetMonitoring() {
+        // Verificar status da internet a cada 5 segundos
+        this.internetCheckInterval = setInterval(() => {
+            this.checkInternetStatus();
+        }, 5000);
+    }
+
+    checkInternetStatus() {
+        const now = Date.now();
+        const timeout = 15000; // 15 segundos sem dados = offline
+        
+        if (this.lastDataTimestamp && (now - this.lastDataTimestamp) > timeout) {
+            this.updateInternetStatus(false);
+        }
+    }
+
+    updateInternetStatus(isOnline) {
+        if (isOnline) {
+            this.lastDataTimestamp = Date.now();
+            if (this.internetStatus !== 'online') {
+                this.internetStatus = 'online';
+                this.updateNetworkStatusCard();
+                console.log('🌐 Internet: Online');
+            }
+        } else {
+            if (this.internetStatus !== 'offline') {
+                this.internetStatus = 'offline';
+                this.updateNetworkStatusCard();
+                console.log('🌐 Internet: Offline');
+            }
+        }
+    }
+
     updateKPIValues() {
         // Atualizar KPIs somente com dados reais recebidos
-        const tempKPI = document.getElementById('tempKPI');
-        const humidityKPI = document.getElementById('humidityKPI');
-        const networkKPI = document.getElementById('networkKPI');
-        const voltageKPI = document.getElementById('voltageKPI');
+        const rmsKPI = document.getElementById('tempValue');      // RMS usa tempValue
+        const statusKPI = document.getElementById('humidityValue'); // Status Rede usa humidityValue
+        const latencyKPI = document.getElementById('networkValue'); // Latência usa networkValue
+        const voltageKPI = document.getElementById('energyValue');  // Voltagem usa energyValue
         
-        if (tempKPI && this.dataHistory.temperature.length > 0) {
-            tempKPI.textContent = this.dataHistory.temperature[this.dataHistory.temperature.length - 1].toFixed(1);
-            tempKPI.style.color = '#2c3e50';
+        if (rmsKPI && this.dataHistory.rms.length > 0) {
+            rmsKPI.textContent = this.dataHistory.rms[this.dataHistory.rms.length - 1].toFixed(1) + ' V';
         }
         
-        if (humidityKPI && this.dataHistory.humidity.length > 0) {
-            humidityKPI.textContent = this.dataHistory.humidity[this.dataHistory.humidity.length - 1].toFixed(1);
-            humidityKPI.style.color = '#2c3e50';
+        if (latencyKPI && this.dataHistory.latency.length > 0) {
+            latencyKPI.textContent = this.dataHistory.latency[this.dataHistory.latency.length - 1].toFixed(0) + ' ms';
         }
         
         if (voltageKPI && this.dataHistory.voltage.length > 0) {
-            voltageKPI.textContent = this.dataHistory.voltage[this.dataHistory.voltage.length - 1].toFixed(0);
-            voltageKPI.style.color = '#2c3e50';
+            voltageKPI.textContent = this.dataHistory.voltage[this.dataHistory.voltage.length - 1].toFixed(0) + ' V';
         }
+        
+        // Atualizar status da rede
+        this.updateNetworkStatusCard();
         
         // Atualizar timestamp da última atualização
         const lastDataElement = document.getElementById('lastDataReceived');
@@ -855,25 +853,27 @@ class SentinelaDashboard {
         this.charts.environmentChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Temp. Atual', 'Umidade', 'Máx Temp.', 'Máx Umid.'],
+                labels: ['Latência', 'Voltagem', 'RMS'],
                 datasets: [{
-                    label: 'Dados Ambientais',
-                    data: [0, 0, 0, 0],
+                    label: 'Qualidade do Sistema',
+                    data: [0, 0, 0],
                     backgroundColor: (context) => {
-                        const colors = [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(118, 75, 162, 0.8)', 
-                            'rgba(240, 147, 251, 0.8)',
-                            'rgba(245, 87, 108, 0.8)'
-                        ];
-                        return colors[context.dataIndex] || colors[0];
+                        const value = context.parsed.y;
+                        // Mesma lógica de cores do gráfico de saúde
+                        if (value >= 90) return 'rgba(39, 174, 96, 0.85)';   // Verde escuro: Ótimo
+                        if (value >= 75) return 'rgba(46, 204, 113, 0.85)';  // Verde claro: Bom
+                        if (value >= 50) return 'rgba(241, 196, 15, 0.85)';  // Amarelo: Atenção
+                        if (value >= 30) return 'rgba(230, 126, 34, 0.85)';  // Laranja: Preocupante
+                        return 'rgba(231, 76, 60, 0.85)'; // Vermelho: Crítico
                     },
-                    borderColor: [
-                        '#667eea',
-                        '#764ba2',
-                        '#f093fb', 
-                        '#f5576c'
-                    ],
+                    borderColor: (context) => {
+                        const value = context.parsed.y;
+                        if (value >= 90) return '#27ae60';
+                        if (value >= 75) return '#2ecc71';
+                        if (value >= 50) return '#f1c40f';
+                        if (value >= 30) return '#e67e22';
+                        return '#e74c3c';
+                    },
                     borderWidth: 3,
                     borderRadius: 12,
                     borderSkipped: false,
@@ -888,7 +888,7 @@ class SentinelaDashboard {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Monitoramento Ambiental',
+                        text: 'Análise de Qualidade dos Dados (%)',
                         color: '#2c3e50',
                         font: {
                             size: 16,
@@ -909,23 +909,31 @@ class SentinelaDashboard {
                         cornerRadius: 12,
                         padding: 12,
                         callbacks: {
-                            label: function(context) {
-                                const value = context.parsed.y;
+                            label: (context) => {
+                                const percent = context.parsed.y.toFixed(1);
                                 const label = context.label;
-                                const unit = label.includes('Temp') ? '°C' : '%';
+                                let realValue = '';
                                 let status = '';
                                 
-                                if (label.includes('Temp')) {
-                                    if (value < 18) status = ' ❄️ Muito Frio';
-                                    else if (value > 27) status = ' 🔥 Muito Quente';
-                                    else status = ' ✅ Normal';
-                                } else {
-                                    if (value < 45) status = ' ⚠️ Muito Seco';
-                                    else if (value > 75) status = ' 💧 Muito Úmido';
-                                    else status = ' ✅ Normal';
+                                if (label.includes('Latência')) {
+                                    realValue = `${this.lastRealValues.latency.toFixed(1)} ms`;
+                                    if (this.lastRealValues.latency < 50) status = ' ✅ Ótimo';
+                                    else if (this.lastRealValues.latency < 100) status = ' 👍 Bom';
+                                    else if (this.lastRealValues.latency < 200) status = ' ⚠️ Atenção';
+                                    else status = ' 🔴 Crítico';
+                                } else if (label.includes('Voltagem')) {
+                                    realValue = `${this.lastRealValues.voltage.toFixed(1)} V`;
+                                    if (this.lastRealValues.voltage >= 210 && this.lastRealValues.voltage <= 230) status = ' ✅ Normal';
+                                    else if (this.lastRealValues.voltage >= 200 && this.lastRealValues.voltage <= 240) status = ' ⚠️ Atenção';
+                                    else status = ' 🔴 Crítico';
+                                } else if (label.includes('RMS')) {
+                                    realValue = `${this.lastRealValues.rms.toFixed(1)} V`;
+                                    if (this.lastRealValues.rms >= 120 && this.lastRealValues.rms <= 130) status = ' ✅ Normal';
+                                    else if (this.lastRealValues.rms >= 110 && this.lastRealValues.rms <= 140) status = ' ⚠️ Atenção';
+                                    else status = ' 🔴 Crítico';
                                 }
                                 
-                                return `${label}: ${value}${unit}${status}`;
+                                return `${label}: ${realValue} (${percent}% ideal)${status}`;
                             }
                         }
                     }
@@ -934,6 +942,16 @@ class SentinelaDashboard {
                     y: {
                         beginAtZero: true,
                         max: 100,
+                        title: {
+                            display: true,
+                            text: 'Qualidade (%)',
+                            color: '#7f8c8d',
+                            font: {
+                                size: 13,
+                                family: 'Inter',
+                                weight: '600'
+                            }
+                        },
                         grid: {
                             color: 'rgba(102, 126, 234, 0.1)',
                             drawBorder: false,
@@ -948,7 +966,10 @@ class SentinelaDashboard {
                                 size: 12,
                                 family: 'Inter'
                             },
-                            padding: 10
+                            padding: 10,
+                            callback: function(value) {
+                                return value + '%';
+                            }
                         }
                     },
                     x: {
@@ -980,33 +1001,115 @@ class SentinelaDashboard {
     }
 
     updateChart(sensorData) {
-        const sensorType = sensorData?.sensor || 'unknown';
+        const sensorType = sensorData?.sensor || sensorData || 'unknown';
         console.log("Atualizando gráfico:", sensorType);
         
-        // Atualizar gráfico principal com todos os sensores
-        if (this.charts.sensorsChart) {
-            const chart = this.charts.sensorsChart;
+        // Atualizar gráfico principal (mainChart) com todos os sensores
+        if (this.charts.mainChart) {
+            console.log('📈 Atualizando mainChart com', this.dataHistory.timestamps.length, 'pontos');
+            const chart = this.charts.mainChart;
             const timestamps = this.dataHistory.timestamps.slice(-15); // Últimos 15 pontos
             
             chart.data.labels = timestamps;
-            chart.data.datasets[0].data = this.dataHistory.temperature.slice(-15);
-            chart.data.datasets[1].data = this.dataHistory.humidity.slice(-15);
-            chart.data.datasets[2].data = this.dataHistory.voltage.slice(-15);
+            chart.data.datasets[0].data = this.dataHistory.latency.slice(-15);
+            chart.data.datasets[1].data = this.dataHistory.voltage.slice(-15);
+            chart.data.datasets[2].data = this.dataHistory.rms.slice(-15);
             
+            chart.update('none');
+        } else {
+            console.warn('⚠️ mainChart não existe');
+        }
+        
+        // Atualizar gráfico de ambiente (environmentChart) com valores normalizados em %
+        if (this.charts.environmentChart) {
+            const chart = this.charts.environmentChart;
+            
+            const latency = this.dataHistory.latency.length > 0 ? 
+                this.dataHistory.latency[this.dataHistory.latency.length - 1] : 0;
+            const voltage = this.dataHistory.voltage.length > 0 ? 
+                this.dataHistory.voltage[this.dataHistory.voltage.length - 1] : 0;
+            const rms = this.dataHistory.rms.length > 0 ? 
+                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 0;
+            
+            // Armazenar valores reais
+            this.lastRealValues.latency = latency;
+            this.lastRealValues.voltage = voltage;
+            this.lastRealValues.rms = rms;
+            
+            // Normalizar para percentual de qualidade (0-100%)
+            // 100% = valor ideal, 0% = valor crítico (fora da faixa aceitável)
+            
+            // Latência: 0-50ms = 100%, >400ms = 0%
+            let latencyPercent = 100;
+            if (latency > 400) latencyPercent = 0;
+            else if (latency > 200) latencyPercent = 30;
+            else if (latency > 100) latencyPercent = 60;
+            else if (latency > 50) latencyPercent = 80;
+            
+            // Voltagem: 210-230V = 100%, fora de 190-250V = 0%
+            let voltagePercent = 100;
+            if (voltage >= 210 && voltage <= 230) voltagePercent = 100;
+            else if (voltage >= 205 && voltage <= 235) voltagePercent = 80;
+            else if (voltage >= 200 && voltage <= 240) voltagePercent = 60;
+            else if (voltage >= 190 && voltage <= 250) voltagePercent = 30;
+            else voltagePercent = 0; // Fora da faixa = 0%
+            
+            // RMS: 120-130V = 100%, fora de 100-150V = 0%
+            let rmsPercent = 100;
+            if (rms >= 120 && rms <= 130) rmsPercent = 100;
+            else if (rms >= 115 && rms <= 135) rmsPercent = 80;
+            else if (rms >= 110 && rms <= 140) rmsPercent = 60;
+            else if (rms >= 100 && rms <= 150) rmsPercent = 30;
+            else rmsPercent = 0; // Fora da faixa = 0%
+            
+            chart.data.datasets[0].data = [latencyPercent, voltagePercent, rmsPercent];
             chart.update('none');
         }
         
-        // Atualizar gráfico donut com valores atuais
-        if (this.charts.tempHumidityChart && (sensorType === 'temperature' || sensorType === 'humidity')) {
+        // Atualizar gráfico de saúde com percentuais
+        if (this.charts.tempHumidityChart) {
             const chart = this.charts.tempHumidityChart;
             
-            // Pegar os valores mais recentes
-            const currentTemp = this.dataHistory.temperature.length > 0 ? 
-                this.dataHistory.temperature[this.dataHistory.temperature.length - 1] : 25;
-            const currentHumidity = this.dataHistory.humidity.length > 0 ? 
-                this.dataHistory.humidity[this.dataHistory.humidity.length - 1] : 65;
+            // Calcular saúde de cada métrica (0-100%)
+            const latency = this.dataHistory.latency.length > 0 ? 
+                this.dataHistory.latency[this.dataHistory.latency.length - 1] : 0;
+            const voltage = this.dataHistory.voltage.length > 0 ? 
+                this.dataHistory.voltage[this.dataHistory.voltage.length - 1] : 220;
+            const rms = this.dataHistory.rms.length > 0 ? 
+                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 127;
             
-            chart.data.datasets[0].data = [currentTemp, currentHumidity];
+            // Calcular percentuais de saúde
+            // Latência: 0-50ms = 100%, 50-100ms = 80%, 100-200ms = 60%, 200-400ms = 30%, >400ms = 10%
+            let latencyHealth = 100;
+            if (latency > 400) latencyHealth = 10;
+            else if (latency > 200) latencyHealth = 30;
+            else if (latency > 100) latencyHealth = 60;
+            else if (latency > 50) latencyHealth = 80;
+            
+            // Voltagem: 210-230V = 100%, 205-235V = 80%, 200-240V = 60%, 190-250V = 30%, fora = 10%
+            let voltageHealth = 100;
+            if (voltage >= 210 && voltage <= 230) voltageHealth = 100;
+            else if (voltage >= 205 && voltage <= 235) voltageHealth = 80;
+            else if (voltage >= 200 && voltage <= 240) voltageHealth = 60;
+            else if (voltage >= 190 && voltage <= 250) voltageHealth = 30;
+            else voltageHealth = 10;
+            
+            // RMS: 120-130V = 100%, 115-135V = 80%, 110-140V = 60%, 100-150V = 30%, fora = 10%
+            let rmsHealth = 100;
+            if (rms >= 120 && rms <= 130) rmsHealth = 100;
+            else if (rms >= 115 && rms <= 135) rmsHealth = 80;
+            else if (rms >= 110 && rms <= 140) rmsHealth = 60;
+            else if (rms >= 100 && rms <= 150) rmsHealth = 30;
+            else rmsHealth = 10;
+
+            console.log('🔍 DEBUG SAÚDE:', { 
+                latencia: `${latency.toFixed(1)}ms → ${latencyHealth}%`,
+                voltagem: `${voltage.toFixed(1)}V → ${voltageHealth}%`,
+                rms: `${rms.toFixed(1)}V → ${rmsHealth}%`,
+                dados: [latencyHealth, voltageHealth, rmsHealth]
+            });
+            
+            chart.data.datasets[0].data = [latencyHealth, voltageHealth, rmsHealth];
             chart.update('none');
         }
     }
@@ -1022,8 +1125,17 @@ class SentinelaDashboard {
     displayCriticalEvent(event) {
         console.log("🚨 Evento crítico recebido:", event);
         
-        // Criar notificação visual
-        this.showNotification(event);
+        // Atualizar status da rede baseado no evento
+        if (event.category === 'network_outage') {
+            this.networkStatus = 'offline';
+            this.updateNetworkStatusCard();
+        } else if (event.category === 'network_restored') {
+            this.networkStatus = 'online';
+            this.updateNetworkStatusCard();
+        }
+        
+        // Apenas logar eventos, sem popup visual
+        // this.showNotification(event);
         
         // Adicionar ao log de eventos (se houver área de eventos no dashboard)
         this.addEventToLog(event);

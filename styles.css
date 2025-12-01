@@ -759,11 +759,13 @@ canvas {
     font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
+    color: #2c3e50;
     transition: all 0.3s ease;
 }
 
 .kpi-card:hover .kpi-value {
     transform: scale(1.05);
+    color: white;
 }
 
 /* Dashboard Grid */

@@ -391,10 +391,9 @@
                         <label>Tipo de Leitura:</label>
                         <select id="readingTypeFilter">
                             <option value="">Todos</option>
-                            <option value="temperatura">Temperatura</option>
-                            <option value="umidade">Umidade</option>
-                            <option value="latencia">Latência</option>
-                            <option value="energia">Qualidade da Energia</option>
+                            <option value="latency">Latência</option>
+                            <option value="voltage">Voltagem</option>
+                            <option value="rms">RMS</option>
                         </select>
 
                         <label>Período:</label>
@@ -669,10 +668,9 @@
 
             getReadingTypeLabel(type) {
                 const labels = {
-                    temperatura: 'Temperatura',
-                    umidade: 'Umidade',
-                    latencia: 'Latência',
-                    energia: 'Qualidade Energia'
+                    latency: 'Latência',
+                    voltage: 'Voltagem',
+                    rms: 'RMS'
                 };
                 return labels[type] || type;
             }
