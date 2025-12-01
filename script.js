@@ -1,10 +1,10 @@
 class SentinelaDashboard {
     constructor() {
         this.dataHistory = {
-            temperature: [],
-            humidity: [],
-            voltage: [],
-            network: [],
+            latency: [],      // Latência da rede (ms)
+            voltage: [],      // Voltagem da energia (V)
+            rms: [],          // RMS
+            network: [],      // Status da rede
             timestamps: []
         };
 
@@ -73,6 +73,13 @@ class SentinelaDashboard {
         this.ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
+                
+                // [ADD] Processar eventos críticos em tempo real
+                if (msg.type === "critical_event" && msg.event) {
+                    this.displayCriticalEvent(msg.event);
+                    return;
+                }
+                
                 if (msg.type === "mqtt_message") {
                     console.log("📡 Dados MQTT recebidos:", msg.data);
                     
@@ -91,8 +98,8 @@ class SentinelaDashboard {
     }
 
     processSensorData(data) {
-        if (!data || !data.sensor || !data.reading || 
-            (typeof data.reading.value !== "number" && typeof data.reading.value !== "string")) {
+        // Novo formato: {type: 'latency', value: 35, unit: 'ms'}
+        if (!data || !data.type || typeof data.value === 'undefined') {
             console.log("Dados de sensor inválidos:", data);
             return;
         }
@@ -100,16 +107,29 @@ class SentinelaDashboard {
         // Primeira vez recebendo dados reais - remover mensagens de aguardando
         this.onFirstDataReceived();
 
-        const timeLabel = data.timestamp_unix ?
-            new Date(data.timestamp_unix * 1000).toLocaleTimeString("pt-BR") :
+        const timeLabel = data.timestamp ?
+            new Date(data.timestamp).toLocaleTimeString("pt-BR") :
             new Date().toLocaleTimeString("pt-BR");
 
-        console.log(`📊 Processando sensor: ${data.sensor} = ${data.reading.value}${data.reading.unit || ''}`);
+        console.log(`📊 Processando sensor: ${data.type} = ${data.value}${data.unit || ''}`);
 
-        switch (data.sensor) {
-            case "temperatura":
-                this.updateRealChart("temperature", data.reading.value, timeLabel, data.reading.unit || "°C");
-                this.updateMetric("temperature", data.reading.value.toFixed(1), this.getTemperatureStatus(data.reading.value));
+        switch (data.type) {
+            case "latency":
+            case "latencia":
+                this.updateRealChart("latency", data.value, timeLabel, data.unit || "ms");
+                this.updateMetric("network", data.value.toFixed(1), this.getLatencyStatus(data.value));
+                break;
+
+            case "voltage":
+            case "voltagem":
+                this.updateRealChart("voltage", data.value, timeLabel, data.unit || "V");
+                this.updateMetric("voltage", data.value.toFixed(1), this.getVoltageStatus(data.value));
+                break;
+
+            case "rms":
+                this.updateRealChart("rms", data.value, timeLabel, data.unit || "V");
+                // Pode usar temperatura como placeholder ou criar nova métrica
+                this.updateMetric("temperature", data.value.toFixed(1), { class: "normal", text: "RMS Normal" });
                 break;
             case "umidade":
                 this.updateRealChart("humidity", data.reading.value, timeLabel, data.reading.unit || "%");
@@ -159,12 +179,11 @@ class SentinelaDashboard {
         if (healthElement) {
             // Calcular saúde do sistema baseado nos sensores ativos
             let activeSensors = 0;
-            let totalSensors = 4; // temp, humidity, network, voltage
+            let totalSensors = 3; // latency, voltage, rms
             
-            if (this.dataHistory.temperature.length > 0) activeSensors++;
-            if (this.dataHistory.humidity.length > 0) activeSensors++;
+            if (this.dataHistory.latency.length > 0) activeSensors++;
             if (this.dataHistory.voltage.length > 0) activeSensors++;
-            if (this.isConnected) activeSensors++;
+            if (this.dataHistory.rms.length > 0) activeSensors++;
             
             const health = Math.round((activeSensors / totalSensors) * 100);
             healthElement.textContent = health + '%';
@@ -244,6 +263,18 @@ class SentinelaDashboard {
         if (temp < 0 || temp > 40) return { class: "danger", text: "Temperatura crítica!" };
         else if (temp < 10 || temp > 30) return { class: "warning", text: "Temperatura elevada" };
         else return { class: "normal", text: "Temperatura normal" };
+    }
+
+    getLatencyStatus(latency) {
+        if (latency > 200) return { class: "danger", text: "Latência crítica!" };
+        else if (latency > 100) return { class: "warning", text: "Latência alta" };
+        else return { class: "normal", text: "Latência normal" };
+    }
+
+    getVoltageStatus(voltage) {
+        if (voltage < 200 || voltage > 240) return { class: "danger", text: "Voltagem crítica!" };
+        else if (voltage < 210 || voltage > 230) return { class: "warning", text: "Voltagem instável" };
+        else return { class: "normal", text: "Voltagem normal" };
     }
 
     getHumidityStatus(humidity) {
@@ -564,9 +595,6 @@ class SentinelaDashboard {
                     },
                     legend: {
                         display: true,
-                        position: 'top',
-                    legend: {
-                        display: true,
                         position: 'bottom',
                         labels: {
                             padding: 20,
@@ -853,7 +881,6 @@ class SentinelaDashboard {
                     maxBarThickness: 60
                 }]
             },
-            },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -991,8 +1018,199 @@ class SentinelaDashboard {
         }
     }
 
+    // [ADD] Exibir evento crítico em tempo real
+    displayCriticalEvent(event) {
+        console.log("🚨 Evento crítico recebido:", event);
+        
+        // Criar notificação visual
+        this.showNotification(event);
+        
+        // Adicionar ao log de eventos (se houver área de eventos no dashboard)
+        this.addEventToLog(event);
+    }
+
+    showNotification(event) {
+        // Criar elemento de notificação
+        const notification = document.createElement('div');
+        notification.className = 'critical-notification';
+        notification.innerHTML = `
+            <div class="notification-icon">⚠️</div>
+            <div class="notification-content">
+                <strong>${this.getCategoryLabel(event.category)}</strong>
+                <p>${event.message}</p>
+                <small>${new Date(event.timestamp).toLocaleTimeString('pt-BR')}</small>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        // Adicionar ao container de notificações (criar se não existir)
+        let container = document.getElementById('notificationsContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notificationsContainer';
+            container.className = 'notifications-container';
+            document.body.appendChild(container);
+            
+            // Adicionar estilos
+            const style = document.createElement('style');
+            style.textContent = `
+                .notifications-container {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    max-width: 400px;
+                }
+                .critical-notification {
+                    background: white;
+                    border-left: 4px solid #f44336;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    border-radius: 4px;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    display: flex;
+                    align-items: flex-start;
+                    animation: slideIn 0.3s ease;
+                }
+                @keyframes slideIn {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .notification-icon {
+                    font-size: 24px;
+                    margin-right: 12px;
+                }
+                .notification-content {
+                    flex: 1;
+                }
+                .notification-content strong {
+                    display: block;
+                    margin-bottom: 4px;
+                    color: #333;
+                }
+                .notification-content p {
+                    margin: 0;
+                    color: #666;
+                    font-size: 14px;
+                }
+                .notification-content small {
+                    color: #999;
+                    font-size: 12px;
+                }
+                .notification-close {
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    color: #999;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 24px;
+                    height: 24px;
+                    line-height: 24px;
+                }
+                .notification-close:hover {
+                    color: #333;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        container.appendChild(notification);
+
+        // Auto-remover após 10 segundos
+        setTimeout(() => {
+            notification.style.animation = 'slideIn 0.3s ease reverse';
+            setTimeout(() => notification.remove(), 300);
+        }, 10000);
+    }
+
+    addEventToLog(event) {
+        // Tentar adicionar a uma área de log se existir
+        const eventLog = document.getElementById('eventLog');
+        if (eventLog) {
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-log-item';
+            eventItem.innerHTML = `
+                <span class="event-time">${new Date(event.timestamp).toLocaleTimeString('pt-BR')}</span>
+                <span class="event-category badge-${event.category}">${this.getCategoryLabel(event.category)}</span>
+                <span class="event-message">${event.message}</span>
+            `;
+            eventLog.insertBefore(eventItem, eventLog.firstChild);
+            
+            // Manter apenas últimos 20 eventos
+            while (eventLog.children.length > 20) {
+                eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+    }
+
+    getCategoryLabel(category) {
+        const labels = {
+            power_outage: 'Queda de Energia',
+            network_outage: 'Queda de Rede',
+            critical_latency: 'Latência Crítica',
+            power_quality: 'Qualidade Energia',
+            other: 'Outro'
+        };
+        return labels[category] || category;
+    }
+
     setupEventListeners() {
         window.addEventListener("beforeunload", () => this.cleanup());
+        
+        // Mobile menu toggle
+        this.setupMobileMenu();
+    }
+
+    setupMobileMenu() {
+        const menuToggle = document.querySelector('.menu-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        
+        if (menuToggle && sidebar) {
+            // Criar overlay para mobile
+            let overlay = document.querySelector('.sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.querySelector('.dashboard-layout').appendChild(overlay);
+            }
+
+            // Toggle sidebar
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+            });
+
+            // Fechar ao clicar no overlay
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+
+            // Fechar ao clicar em um item do menu
+            const navItems = sidebar.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('open');
+                        overlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+
+            // Fechar ao redimensionar para desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
     }
 
     cleanup() {

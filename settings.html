@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Configurações - Sentinela</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -155,6 +159,106 @@
         .back-btn:hover {
             background: #f8f9fa;
             transform: translateY(-2px);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 15px;
+                margin-top: 60px;
+            }
+
+            .settings-container {
+                max-width: 100%;
+            }
+
+            .settings-section {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+                margin-bottom: 25px !important;
+            }
+
+            .form-input {
+                padding: 10px 14px;
+                font-size: 0.95rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px;
+            }
+
+            .back-btn {
+                top: 15px;
+                left: 15px;
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-wrapper {
+                padding: 10px;
+                margin-top: 55px;
+            }
+
+            .settings-section {
+                padding: 15px;
+                border-radius: 12px;
+            }
+
+            .section-title {
+                font-size: 1.1rem;
+                gap: 8px;
+            }
+
+            h1 {
+                font-size: 1.3rem !important;
+                margin-bottom: 20px !important;
+            }
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .form-label {
+                font-size: 0.85rem;
+            }
+
+            .form-input {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+
+            .back-btn {
+                top: 10px;
+                left: 10px;
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+
+            .info-card {
+                padding: 12px;
+            }
+
+            .alert {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>

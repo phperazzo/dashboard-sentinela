@@ -62,8 +62,19 @@ const JWT_EXPIRE = process.env.JWT_EXPIRE || '24h';
 class SentinelaBackend {
     constructor() {
         this.app = express();
+        // Armazenamento de eventos críticos assíncronos (strings: energia caiu, rede caiu, etc)
+        this.criticalEvents = [];
+        // Armazenamento de dados síncronos periódicos
+        this.syncData = {
+            latency: [],      // Latência da rede (ms)
+            voltage: [],      // Voltagem da energia (V)
+            rms: []           // RMS (Root Mean Square)
+        };
+        // Armazenamento de todas as leituras
+        this.allReadings = [];
         this.setupMiddleware();
         this.setupAuthRoutes();
+        this.setupDataRoutes();
         this.initializeServer();
     }
 
@@ -116,7 +127,7 @@ class SentinelaBackend {
             res.setHeader('X-Frame-Options', 'DENY');
             res.setHeader('X-XSS-Protection', '1; mode=block');
             res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-            res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'");
+            res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; font-src 'self' fonts.gstatic.com cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' ws: wss: cdn.jsdelivr.net");
             next();
         });
         
@@ -318,6 +329,126 @@ class SentinelaBackend {
         });
     }
 
+    // [ADD] Rotas para dados e relatórios
+    setupDataRoutes() {
+        // A) Endpoint: todas as leituras periódicas (síncronas)
+        this.app.get('/api/readings/all', this.authenticateToken, (req, res) => {
+            res.json({
+                success: true,
+                data: this.allReadings,
+                count: this.allReadings.length,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        // B) Endpoint: leituras filtradas por tipo (latency, voltage, rms)
+        this.app.get('/api/readings/filter/:type', this.authenticateToken, (req, res) => {
+            const { type } = req.params;
+            const validTypes = ['latency', 'voltage', 'rms', 'latencia', 'voltagem'];
+            
+            if (!validTypes.includes(type)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Tipo inválido. Use: latency, voltage, rms'
+                });
+            }
+
+            const filtered = this.allReadings.filter(reading => 
+                reading.type === type || 
+                (type === 'latencia' && reading.type === 'latency') ||
+                (type === 'voltagem' && reading.type === 'voltage')
+            );
+            
+            res.json({
+                success: true,
+                type,
+                data: filtered,
+                count: filtered.length
+            });
+        });
+
+        // C) Endpoint: médias dos dados síncronos (latência, voltagem, RMS)
+        this.app.get('/api/readings/averages', this.authenticateToken, (req, res) => {
+            const averages = this.calculateAverages();
+            res.json({
+                success: true,
+                data: averages,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        // D) Endpoint: eventos críticos assíncronos (strings)
+        this.app.get('/api/events/critical', this.authenticateToken, (req, res) => {
+            res.json({
+                success: true,
+                data: this.criticalEvents,
+                count: this.criticalEvents.length,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        // E) Endpoint: dados síncronos separados por tipo
+        this.app.get('/api/data/sync', this.authenticateToken, (req, res) => {
+            res.json({
+                success: true,
+                data: {
+                    latency: this.syncData.latency,
+                    voltage: this.syncData.voltage,
+                    rms: this.syncData.rms
+                },
+                counts: {
+                    latency: this.syncData.latency.length,
+                    voltage: this.syncData.voltage.length,
+                    rms: this.syncData.rms.length
+                },
+                timestamp: new Date().toISOString()
+            });
+        });
+    }
+
+    // Função para calcular médias dos dados síncronos
+    calculateAverages() {
+        const result = {};
+
+        // Média de latência
+        if (this.syncData.latency.length > 0) {
+            const latencyValues = this.syncData.latency.map(d => d.value);
+            result.latency = {
+                avg: (latencyValues.reduce((a, b) => a + b, 0) / latencyValues.length).toFixed(2),
+                min: Math.min(...latencyValues),
+                max: Math.max(...latencyValues),
+                count: latencyValues.length,
+                unit: 'ms'
+            };
+        }
+
+        // Média de voltagem
+        if (this.syncData.voltage.length > 0) {
+            const voltageValues = this.syncData.voltage.map(d => d.value);
+            result.voltage = {
+                avg: (voltageValues.reduce((a, b) => a + b, 0) / voltageValues.length).toFixed(2),
+                min: Math.min(...voltageValues),
+                max: Math.max(...voltageValues),
+                count: voltageValues.length,
+                unit: 'V'
+            };
+        }
+
+        // Média de RMS
+        if (this.syncData.rms.length > 0) {
+            const rmsValues = this.syncData.rms.map(d => d.value);
+            result.rms = {
+                avg: (rmsValues.reduce((a, b) => a + b, 0) / rmsValues.length).toFixed(2),
+                min: Math.min(...rmsValues),
+                max: Math.max(...rmsValues),
+                count: rmsValues.length,
+                unit: this.syncData.rms[0].unit || ''
+            };
+        }
+
+        return result;
+    }
+
     // Middleware de autenticação
     authenticateToken(req, res, next) {
         // Tentar pegar token do cookie primeiro, depois do header
@@ -363,12 +494,15 @@ class SentinelaBackend {
             return;
         }
 
-        const mqttUrl = `mqtt://${mqttConfig.host}:${mqttConfig.port}`;
+        // Usar mqtts:// para conexão TLS (porta 8883)
+        const protocol = mqttConfig.protocol || 'mqtt';
+        const mqttUrl = `${protocol}://${mqttConfig.host}:${mqttConfig.port}`;
         const mqttOptions = {
             username: mqttConfig.username,
             password: mqttConfig.password,
             keepalive: mqttConfig.keepalive || 60,
-            clean: mqttConfig.clean_session !== false
+            clean: mqttConfig.clean_session !== false,
+            rejectUnauthorized: true // Validar certificado SSL
         };
 
         this.mqttClient = mqtt.connect(mqttUrl, mqttOptions);
@@ -404,6 +538,10 @@ class SentinelaBackend {
                 return; // Ignorar mensagens inválidas
             }
             console.log(`📥 MQTT recebido do tópico '${topic}':`, payload);
+            
+            // [ADD] Processar e armazenar dados recebidos
+            this.processMQTTMessage(topic, payload);
+            
             this.broadcastToWebSocket({
                 type: 'mqtt_message',
                 topic,
@@ -521,6 +659,131 @@ class SentinelaBackend {
                 client.send(messageString);
             }
         });
+    }
+
+    // [ADD] Processar mensagens MQTT e armazenar dados
+    processMQTTMessage(topic, payload) {
+        const timestamp = new Date().toISOString();
+        const config = this.loadMQTTConfig();
+        
+        // Determinar se é tópico síncrono ou assíncrono
+        const isAsyncTopic = topic === config?.topics?.async;
+        const isSyncTopic = topic === config?.topics?.sync;
+
+        // Processar dados SÍNCRONOS (periódicos): latência, voltagem, RMS
+        if (isSyncTopic) {
+            // Latência da rede
+            if (payload.type === 'latency' || payload.type === 'latencia') {
+                const latencyData = {
+                    value: payload.value,
+                    unit: payload.unit || 'ms',
+                    timestamp,
+                    type: 'latency'
+                };
+                this.syncData.latency.push(latencyData);
+                this.allReadings.push(latencyData);
+                
+                // Manter apenas últimas 500 leituras
+                if (this.syncData.latency.length > 500) {
+                    this.syncData.latency.shift();
+                }
+            }
+            
+            // Voltagem da energia
+            if (payload.type === 'voltage' || payload.type === 'voltagem') {
+                const voltageData = {
+                    value: payload.value,
+                    unit: payload.unit || 'V',
+                    timestamp,
+                    type: 'voltage'
+                };
+                this.syncData.voltage.push(voltageData);
+                this.allReadings.push(voltageData);
+                
+                if (this.syncData.voltage.length > 500) {
+                    this.syncData.voltage.shift();
+                }
+            }
+
+            // RMS (Root Mean Square)
+            if (payload.type === 'rms') {
+                const rmsData = {
+                    value: payload.value,
+                    unit: payload.unit || '',
+                    timestamp,
+                    type: 'rms'
+                };
+                this.syncData.rms.push(rmsData);
+                this.allReadings.push(rmsData);
+                
+                if (this.syncData.rms.length > 500) {
+                    this.syncData.rms.shift();
+                }
+            }
+        }
+
+        // Processar eventos ASSÍNCRONOS (strings): "energia caiu", "rede caiu", "energia voltou", "rede voltou"
+        if (isAsyncTopic) {
+            const eventMessage = payload.message || payload.event || payload.description || '';
+            
+            // Categorizar baseado no conteúdo da mensagem
+            let category = 'other';
+            const msgLower = eventMessage.toLowerCase();
+            
+            if (msgLower.includes('energia caiu') || msgLower.includes('power outage')) {
+                category = 'power_outage';
+            } else if (msgLower.includes('rede caiu') || msgLower.includes('network outage')) {
+                category = 'network_outage';
+            } else if (msgLower.includes('energia voltou') || msgLower.includes('power restored')) {
+                category = 'power_restored';
+            } else if (msgLower.includes('rede voltou') || msgLower.includes('network restored')) {
+                category = 'network_restored';
+            }
+            
+            // Adicionar evento crítico
+            this.addCriticalEvent({
+                category,
+                message: eventMessage,
+                timestamp
+            });
+        }
+
+        // Broadcast para WebSocket (tempo real)
+        this.broadcastToWebSocket({
+            topic,
+            payload,
+            timestamp
+        });
+    }
+
+    // Adicionar evento crítico
+    addCriticalEvent(event) {
+        this.criticalEvents.push(event);
+        
+        // Manter apenas últimos 500 eventos
+        if (this.criticalEvents.length > 500) {
+            this.criticalEvents.shift();
+        }
+
+        // Broadcast evento crítico para clientes conectados
+        this.broadcastToWebSocket({
+            type: 'critical_event',
+            event
+        });
+        
+        console.log(`⚠️ Evento crítico: ${event.category} - ${event.message}`);
+    }
+
+    // [ADD] Carregar configuração MQTT
+    loadMQTTConfig() {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const configPath = path.resolve(__dirname, '..', 'config.json');
+            return JSON.parse(fs.readFileSync(configPath, 'utf8')).mqtt;
+        } catch (err) {
+            return null;
+        }
     }
 
     // Graceful shutdown

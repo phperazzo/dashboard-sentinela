@@ -1,35 +1,48 @@
 # Dashboard Sentinela
 
-Sistema completo de monitoramento para data center com autenticação segura, dashboard em tempo real e simulador de sensores integrado.
+Sistema completo de monitoramento para data center com autenticação segura, dashboard em tempo real, eventos críticos e relatórios avançados.
 
 ## 🚀 Funcionalidades
 
-- **🔐 Sistema de Autenticação**: Login seguro com JWT e proteção contra ataques
-- **📊 Dashboard em Tempo Real**: Monitoramento ao vivo dos sensores do data center
+### Core Features
+- **🔐 Sistema de Autenticação**: Login seguro com JWT, cookies HttpOnly e proteção contra ataques
+- **📊 Dashboard em Tempo Real**: Monitoramento ao vivo via WebSocket com atualização instantânea
+- **🚨 Eventos Críticos**: Detecção e notificação em tempo real de 4 categorias de eventos
+- **📈 Relatórios Avançados**: Análise de dados com filtros, médias e estatísticas
 - **⚙️ Configurações**: Interface para alteração de senhas e configurações do sistema
-- **📈 Gráficos Interativos**: Visualização temporal com Chart.js
-- **🔄 Dados Simulados**: Simulador integrado para desenvolvimento e testes
 - **📱 Interface Responsiva**: Funciona em desktop, tablet e mobile
 - **🛡️ Segurança Avançada**: Rate limiting, headers de segurança, validação rigorosa
 
-### Métricas Monitoradas:
+### Métricas Monitoradas (Síncronas):
 - 🌡️ **Temperatura ambiente**
 - 💧 **Umidade relativa do ar**
 - ⚡ **Tensão da rede elétrica**
-- 🌐 **Status da rede/energia**
-- 📡 **Conectividade MQTT**
+- 🌐 **Latência de rede**
+- 🔋 **Qualidade da energia**
+
+### Eventos Críticos (Assíncronos):
+1. ⚡ **Queda de Energia** (`power_outage`)
+2. 🌐 **Queda de Rede** (`network_outage`)
+3. 🐌 **Latência Crítica** (`critical_latency` - >200ms)
+4. 🔋 **Qualidade Baixa da Energia** (`power_quality` - <80%)
 
 ## 🏗️ Arquitetura
 
 ```
 Dashboard Sentinela
 ├── Frontend (HTML/CSS/JavaScript)
-├── Conexão Cloud (WebSocket/HTTP)
-└── Hardware Sentinela
-    ├── Sensor de Temperatura
-    ├── Sensor de Umidade
-    ├── Monitor de Tensão
-    └── Interface Ethernet
+│   ├── Dashboard com WebSocket real-time
+│   ├── Notificações de eventos críticos
+│   └── Relatórios com filtros e estatísticas
+├── Backend (Node.js + Express)
+│   ├── APIs REST autenticadas
+│   ├── WebSocket Server
+│   ├── MQTT Client
+│   └── Processamento de eventos
+└── Hardware Sentinela (IoT)
+    ├── Sensores Síncronos (temperatura, umidade, latência, energia)
+    ├── Detectores de Eventos (quedas, oscilações)
+    └── Comunicação MQTT
 ```
 
 ## 📁 Estrutura do Projeto
@@ -37,17 +50,20 @@ Dashboard Sentinela
 ```
 dashboard-sentinela/
 ├── 📄 login.html           # Tela de autenticação
-├── 📄 dashboard.html       # Dashboard principal
+├── 📄 dashboard.html       # Dashboard principal com notificações
+├── 📄 reports.html         # Página de relatórios e análises
 ├── 📄 settings.html        # Configurações do sistema
 ├── 🎨 styles.css          # Estilos globais
-├── ⚙️ script.js           # Lógica do dashboard
+├── ⚙️ script.js           # Lógica do dashboard + eventos críticos
 ├── 📋 config.json         # Configurações da aplicação
-├── 🔧 sw.js               # Service Worker
 ├── 📚 README.md           # Documentação
-├── 📄 LOGIN_CREDENTIALS.md # Credenciais de acesso
+├── 📋 VERIFICATION.md     # Checklist de funcionalidades
 └── 📁 Back/               # Servidor Backend
-    ├── 🚀 server.js       # Servidor principal
+    ├── 🚀 server.js       # Servidor + APIs + WebSocket + MQTT
     ├── 📦 package.json    # Dependências Node.js
+    ├── 🧪 test-critical-events.js # Script de testes
+    └── 👤 user-config.json # Configuração de usuário
+```
     ├── 🔑 user-config.json # Configuração do usuário
     └── 🛠️ *.js            # Scripts auxiliares
 ```
@@ -84,9 +100,10 @@ O servidor iniciará na porta **3000** e você verá a mensagem:
 ### 3. Acessando a Aplicação
 
 Abra seu navegador e acesse:
-```
-http://localhost:3000
-```
+- **Login:** `http://localhost:3000/login.html`
+- **Dashboard:** `http://localhost:3000/dashboard.html` (após login)
+- **Relatórios:** `http://localhost:3000/reports.html` (após login)
+- **Configurações:** `http://localhost:3000/settings.html` (após login)
 
 ### 4. Login no Sistema
 
@@ -94,7 +111,38 @@ Use as credenciais padrão:
 - **Usuário:** `admin`
 - **Senha:** `admin`
 
-### 5. Comandos Úteis
+### 5. Navegação
+
+Após o login, use a barra lateral para navegar entre:
+- 📊 **Dashboard** - Monitoramento em tempo real
+- 🌡️ **Sensores** - Detalhes dos sensores
+- 📈 **Relatórios** - Análises e filtros avançados
+- 🔔 **Alertas** - Histórico de notificações
+- ⚙️ **Configurações** - Alteração de senha
+- 🚪 **Sair** - Logout do sistema
+
+### 6. APIs Disponíveis
+
+Todas as APIs requerem autenticação via JWT (cookies):
+
+#### Leituras de Sensores
+```bash
+GET /api/readings/all                    # Todas as leituras
+GET /api/readings/filter/:type           # Filtrar por tipo
+GET /api/readings/averages               # Médias e estatísticas
+```
+
+#### Eventos Críticos
+```bash
+GET /api/events/critical                 # Todos os eventos
+```
+
+#### Dados Síncronos
+```bash
+GET /api/data/sync                       # Latência e qualidade da energia
+```
+
+### 7. Comandos Úteis
 
 #### Parar o Servidor
 ```bash
@@ -108,10 +156,19 @@ Ctrl + C
 pkill -f "node.*server.js"
 ```
 
-#### Iniciar com npm (alternativo)
+#### Testar APIs
 ```bash
-# Se configurado no package.json
-npm start
+# Fazer login e salvar cookie
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' \
+  -c cookies.txt
+
+# Consultar eventos críticos
+curl -b cookies.txt http://localhost:3000/api/events/critical
+
+# Consultar todas as leituras
+curl -b cookies.txt http://localhost:3000/api/readings/all
 ```
 
 ### 6. Estrutura de Inicialização
