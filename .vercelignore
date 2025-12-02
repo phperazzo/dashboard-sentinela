@@ -1,0 +1,39 @@
+# Backend e APIs
+Back/
+api/
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Certificados
+certs/
+*.pem
+*.key
+*.cert
+
+# Scripts
+*.sh
+*.pid
+
+# Config local
+.env
+user-config.json
+
+# Git
+.git/
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Testes
+test-*.js
+cookies.txt
+mttq-test.jsw
+

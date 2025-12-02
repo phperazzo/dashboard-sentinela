@@ -1,1 +1,53 @@
+# Environment
+.env
+.env.local
+.env.*.local
 Back/.env
+
+# Dependencies
+node_modules/
+Back/node_modules/
+package-lock.json
+Back/package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime
+server.pid
+*.pid
+
+# User data
+user-config.json
+Back/user-config.json
+cookies.txt
+Back/cookies.txt
+
+# Certificates
+certs/
+*.pem
+*.key
+*.cert
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+.vercel
+
+# Temporary files
+*.tmp
+*.temp
+
+

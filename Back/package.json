@@ -1,22 +1,21 @@
 {
   "name": "sentinela-backend",
   "version": "1.0.0",
-  "description": "Backend para conectar dashboard Sentinela com Kafka",
+  "description": "Backend para dashboard Sentinela com MQTT e WebSocket",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "restart": "pkill -f 'node server.js' || true && node server.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.2",
-    "kafkajs": "^2.2.4",
+    "mqtt": "^5.3.0",
     "node-fetch": "^2.7.0",
     "ws": "^8.14.2"
   },
