@@ -1,12 +1,18 @@
-# Backend e APIs
+# Backend completo
 Back/
+
+# APIs serverless
 api/
 
-# Node
+# Node modules e dependências
 node_modules/
+package.json
+package-lock.json
 
-# Logs
+# Logs e runtime
 *.log
+*.pid
+server.log
 
 # Certificados
 certs/
@@ -14,16 +20,26 @@ certs/
 *.key
 *.cert
 
-# Scripts
+# TODOS os scripts
 *.sh
-*.pid
 
-# Config local
+# Configuração local
 .env
+.env.*
 user-config.json
+config.json
 
 # Git
 .git/
+.gitignore
+
+# Documentação desnecessária no deploy
+CLEANUP_README.md
+CLEANUP_SUMMARY.md
+DEPLOY_VERCEL.md
+SECURITY.md
+VERIFICATION.md
+LOGIN_CREDENTIALS.md
 
 # Editor
 .vscode/
@@ -32,8 +48,11 @@ user-config.json
 # OS
 .DS_Store
 
-# Testes
+# Testes e temporários
 test-*.js
 cookies.txt
 mttq-test.jsw
+
+# Service Worker (pode causar problemas)
+sw.js
 
