@@ -420,9 +420,9 @@
                 <span class="unit">ms</span>
             </div>
             <div class="stat-card">
-                <h3>Qualidade Energia Média</h3>
+                <h3>RMS Médio</h3>
                 <div class="value" id="avgPowerQuality">-</div>
-                <span class="unit">%</span>
+                <span class="unit">A</span>
             </div>
         </div>
 
@@ -507,23 +507,40 @@
 
             async loadData() {
                 try {
-                    // Carregar eventos críticos
+                    // Carregar dados da API externa
+                    const apiSincronoResponse = await fetch('/apisincrono');
+                    const apiSincronoData = await apiSincronoResponse.json();
+                    
+                    const mediaMsResponse = await fetch('/apisincronomedia1');
+                    const mediaMs = await mediaMsResponse.json();
+                    
+                    const mediaRmsResponse = await fetch('/apisincronomedia0');
+                    const mediaRms = await mediaRmsResponse.json();
+
+                    // Transformar dados da API para o formato esperado
+                    this.allReadings = apiSincronoData.map(item => ({
+                        timestamp: item.horaEvento,
+                        type: item.unidade === 'ms' ? 'latency' : 'rms',
+                        value: item.valorEvento,
+                        unit: item.unidade
+                    }));
+
+                    // Carregar eventos críticos (mantém os dados internos)
                     const eventsResponse = await fetch('/api/events/critical', {
                         credentials: 'include'
                     });
-                    this.allEvents = await eventsResponse.json();
+                    const eventsData = await eventsResponse.json();
+                    this.allEvents = eventsData.data || [];
 
-                    // Carregar todas as leituras
-                    const readingsResponse = await fetch('/api/readings/all', {
-                        credentials: 'include'
-                    });
-                    this.allReadings = await readingsResponse.json();
-
-                    // Carregar médias
-                    const averagesResponse = await fetch('/api/readings/averages', {
-                        credentials: 'include'
-                    });
-                    const averages = await averagesResponse.json();
+                    // Criar objeto de médias
+                    const averages = {
+                        latency: {
+                            average: parseFloat(mediaMs)
+                        },
+                        rms: {
+                            average: parseFloat(mediaRms)
+                        }
+                    };
 
                     this.updateStats(averages);
                     this.updateEventCounts();
@@ -538,9 +555,9 @@
                 document.getElementById('totalReadings').textContent = this.allReadings.length;
                 document.getElementById('totalEvents').textContent = this.allEvents.length;
                 document.getElementById('avgLatency').textContent = 
-                    averages.latency?.average?.toFixed(1) || '-';
+                    averages.latency?.average?.toFixed(2) || '-';
                 document.getElementById('avgPowerQuality').textContent = 
-                    averages.powerQuality?.average?.toFixed(1) || '-';
+                    averages.rms?.average?.toFixed(2) || '-';
             }
 
             updateEventCounts() {

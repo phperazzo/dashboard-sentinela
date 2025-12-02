@@ -334,6 +334,67 @@ class SentinelaBackend {
 
     // [ADD] Rotas para dados e relatórios
     setupDataRoutes() {
+        // ----------------- APIs dos dados históricos (Gabriel) -----------------
+        
+        // lista completa síncrona
+        this.app.get('/apisincrono', async (req, res) => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch('https://sentinela-0ar2.onrender.com/sincrono');
+                const data = await response.json();
+                res.json(data);
+            } catch (error) {
+                res.status(500).json({ error: 'Erro ao buscar dados' });
+            }
+        });
+
+        this.app.get('/apisincronomedia0', async (req, res) => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch('https://sentinela-0ar2.onrender.com/sincrono/media/0');
+                const data = await response.json(); // float
+                res.json(String(data));             // devolve como string
+            } catch (error) {
+                res.status(500).json({ error: 'Erro ao buscar média 0 (Rms)' });
+            }
+        });
+
+        this.app.get('/apisincronomedia1', async (req, res) => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch('https://sentinela-0ar2.onrender.com/sincrono/media/1');
+                const data = await response.json(); // float
+                res.json(String(data));             // devolve como string
+            } catch (error) {
+                res.status(500).json({ error: 'Erro ao buscar média 1 (Ms)' });
+            }
+        });
+
+        // específicos: 0 e 1
+        this.app.get('/apisincronoespecificos0', async (req, res) => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch('https://sentinela-0ar2.onrender.com/sincrono/especificos/0');
+                const data = await response.json();
+                res.json(data);
+            } catch (error) {
+                res.status(500).json({ error: 'Erro ao buscar dados específicos 0' });
+            }
+        });
+
+        this.app.get('/apisincronoespecificos1', async (req, res) => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                const response = await fetch('https://sentinela-0ar2.onrender.com/sincrono/especificos/1');
+                const data = await response.json();
+                res.json(data);
+            } catch (error) {
+                res.status(500).json({ error: 'Erro ao buscar dados específicos 1' });
+            }
+        });
+        
+        // ----------------- Rotas existentes -----------------
+
         // A) Endpoint: todas as leituras periódicas (síncronas)
         this.app.get('/api/readings/all', this.authenticateToken, (req, res) => {
             res.json({

@@ -303,10 +303,10 @@ class SentinelaDashboard {
     }
 
     getRMSStatus(rms) {
-        // RMS (corrente) - valores típicos entre 200-230V
-        if (rms < 200 || rms > 240) return { class: "danger", text: "RMS crítico!" };
-        else if (rms < 210 || rms > 230) return { class: "warning", text: "RMS instável" };
-        else return { class: "normal", text: "RMS normal" };
+        // RMS (voltagem) - valores típicos entre 200-230V
+        if (rms < 200 || rms > 240) return { class: "danger", text: "Voltagem crítica!" };
+        else if (rms < 210 || rms > 230) return { class: "warning", text: "Voltagem instável" };
+        else return { class: "normal", text: "Voltagem normal" };
     }
 
     initializeCharts() {
