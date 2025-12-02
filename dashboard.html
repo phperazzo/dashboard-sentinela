@@ -17,46 +17,9 @@
 <body>
     <!-- Verificação de autenticação -->
     <script>
-        // Verificar autenticação antes de carregar o dashboard
-        async function checkAuth() {
-            try {
-                const response = await fetch('/api/auth/check', {
-                    method: 'GET',
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    // Não autenticado, redirecionar para login
-                    window.location.href = '/login.html';
-                    return;
-                }
-
-                const data = await response.json();
-                console.log('Usuário autenticado:', data.user);
-                
-                // Atualizar informações do usuário na interface
-                if (data.user) {
-                    document.addEventListener('DOMContentLoaded', () => {
-                        const userNameElement = document.querySelector('.profile-info h3');
-                        const userRoleElement = document.querySelector('.profile-info p');
-                        
-                        if (userNameElement && data.user.name) {
-                            userNameElement.textContent = data.user.name;
-                        }
-                        if (userRoleElement && data.user.role) {
-                            userRoleElement.textContent = data.user.role;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Erro na verificação de autenticação:', error);
-                // Em caso de erro, redirecionar para login por segurança
-                window.location.href = '/login.html';
-            }
-        }
-
-        // Executar verificação
-        checkAuth();
+        // MODO DEMO - Sem backend no Vercel
+        console.log('Dashboard em modo demo (frontend estático)');
+        // Autenticação desabilitada para visualização no Vercel
     </script>
 
     <div class="dashboard-layout">

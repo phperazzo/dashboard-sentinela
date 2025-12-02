@@ -303,9 +303,9 @@ class SentinelaDashboard {
     }
 
     getRMSStatus(rms) {
-        // RMS (voltagem) - valores típicos entre 200-230V
-        if (rms < 200 || rms > 240) return { class: "danger", text: "Voltagem crítica!" };
-        else if (rms < 210 || rms > 230) return { class: "warning", text: "Voltagem instável" };
+        // RMS (voltagem) - crítico apenas se abaixo de 120V
+        if (rms < 120) return { class: "danger", text: "Voltagem crítica!" };
+        else if (rms < 127 || rms > 130) return { class: "warning", text: "Voltagem instável" };
         else return { class: "normal", text: "Voltagem normal" };
     }
 
@@ -851,8 +851,9 @@ class SentinelaDashboard {
                                 } else if (label.includes('RMS')) {
                                     realValue = `${this.lastRealValues.rms.toFixed(1)} V`;
                                     if (this.lastRealValues.rms >= 120 && this.lastRealValues.rms <= 130) status = ' ✅ Normal';
-                                    else if (this.lastRealValues.rms >= 110 && this.lastRealValues.rms <= 140) status = ' ⚠️ Atenção';
-                                    else status = ' 🔴 Crítico';
+                                    else if (this.lastRealValues.rms > 130 || (this.lastRealValues.rms >= 115 && this.lastRealValues.rms < 120)) status = ' ⚠️ Atenção';
+                                    else if (this.lastRealValues.rms < 120) status = ' 🔴 Crítico';
+                                    else status = ' ⚠️ Atenção';
                                 }
                                 
                                 return `${label}: ${realValue} (${percent}% ideal)${status}`;
@@ -964,12 +965,12 @@ class SentinelaDashboard {
             else if (latency > 100) latencyPercent = 60;
             else if (latency > 50) latencyPercent = 80;
             
-            // RMS: 210-230V = 100%, fora de 190-250V = 0%
+            // RMS: 120-130V = 100%, abaixo de 120V = crítico
             let rmsPercent = 100;
-            if (rms >= 210 && rms <= 230) rmsPercent = 100;
-            else if (rms >= 205 && rms <= 235) rmsPercent = 80;
-            else if (rms >= 200 && rms <= 240) rmsPercent = 60;
-            else if (rms >= 190 && rms <= 250) rmsPercent = 30;
+            if (rms >= 120 && rms <= 130) rmsPercent = 100;
+            else if (rms >= 115 && rms <= 135) rmsPercent = 80;
+            else if (rms >= 110 && rms <= 140) rmsPercent = 60;
+            else if (rms >= 105 && rms <= 145) rmsPercent = 30;
             else rmsPercent = 0; // Fora da faixa = 0%
             
             chart.data.datasets[0].data = [latencyPercent, rmsPercent];
@@ -984,7 +985,7 @@ class SentinelaDashboard {
             const latency = this.dataHistory.latency.length > 0 ? 
                 this.dataHistory.latency[this.dataHistory.latency.length - 1] : 0;
             const rms = this.dataHistory.rms.length > 0 ? 
-                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 220;
+                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 127;
             
             // Calcular percentuais de saúde
             // Latência: 0-50ms = 100%, 50-100ms = 80%, 100-200ms = 60%, 200-400ms = 30%, >400ms = 10%
@@ -994,12 +995,12 @@ class SentinelaDashboard {
             else if (latency > 100) latencyHealth = 60;
             else if (latency > 50) latencyHealth = 80;
             
-            // RMS: 210-230V = 100%, 205-235V = 80%, 200-240V = 60%, 190-250V = 30%, fora = 10%
+            // RMS: 120-130V = 100%, 115-135V = 80%, 110-140V = 60%, 105-145V = 30%, <120V = crítico (10%)
             let rmsHealth = 100;
-            if (rms >= 210 && rms <= 230) rmsHealth = 100;
-            else if (rms >= 205 && rms <= 235) rmsHealth = 80;
-            else if (rms >= 200 && rms <= 240) rmsHealth = 60;
-            else if (rms >= 190 && rms <= 250) rmsHealth = 30;
+            if (rms >= 120 && rms <= 130) rmsHealth = 100;
+            else if (rms >= 115 && rms <= 135) rmsHealth = 80;
+            else if (rms >= 110 && rms <= 140) rmsHealth = 60;
+            else if (rms >= 105 && rms <= 145) rmsHealth = 30;
             else rmsHealth = 10;
 
             console.log('🔍 DEBUG SAÚDE:', { 

@@ -1,7 +1,20 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/login.html" },
-    { "source": "/index", "destination": "/login.html" },
-    { "source": "/index.html", "destination": "/login.html" }
+    { "source": "/", "destination": "/dashboard.html" },
+    { "source": "/index", "destination": "/dashboard.html" },
+    { "source": "/index.html", "destination": "/dashboard.html" },
+    { "source": "/login", "destination": "/dashboard.html" },
+    { "source": "/login.html", "destination": "/dashboard.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
   ]
 }
