@@ -158,7 +158,7 @@
             font-weight: 500;
         }
 
-        .events-section, .readings-section {
+        .readings-section {
             background: white;
             padding: 30px;
             border-radius: 12px;
@@ -166,7 +166,7 @@
             margin-bottom: 30px;
         }
 
-        .events-section h2, .readings-section h2 {
+        .readings-section h2 {
             color: #2c3e50;
             margin-bottom: 25px;
             font-size: 20px;
@@ -174,51 +174,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .event-categories {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .category-filter {
-            padding: 18px 20px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f1 100%);
-            border: 2px solid transparent;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .category-filter:hover {
-            background: linear-gradient(135deg, #ecf0f1 0%, #dfe6e9 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .category-filter.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .category-filter .count {
-            font-size: 32px;
-            font-weight: 700;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .category-filter .label {
-            font-size: 12px;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            opacity: 0.9;
         }
 
         .events-table, .readings-table {
@@ -257,41 +212,6 @@
 
         .events-table tbody tr:last-child td {
             border-bottom: none;
-        }
-
-        .event-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-block;
-        }
-
-        .badge-power_outage { 
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
-        }
-        .badge-network_outage { 
-            background: linear-gradient(135deg, #ffa502 0%, #ff7979 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(255, 165, 2, 0.3);
-        }
-        .badge-critical_latency { 
-            background: linear-gradient(135deg, #ffd93d 0%, #ffb142 100%);
-            color: #2c3e50;
-            box-shadow: 0 2px 4px rgba(255, 217, 61, 0.3);
-        }
-        .badge-power_quality { 
-            background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
-            color: white;
-            box-shadow: 0 2px 4px rgba(162, 155, 254, 0.3);
-        }
-        .badge-other { 
-            background: linear-gradient(135deg, #b2bec3 0%, #636e72 100%);
-            color: white;
         }
 
         .no-data {
@@ -411,10 +331,6 @@
                 <div class="value" id="totalReadings">-</div>
             </div>
             <div class="stat-card">
-                <h3>Eventos Críticos</h3>
-                <div class="value" id="totalEvents">-</div>
-            </div>
-            <div class="stat-card">
                 <h3>Latência Média</h3>
                 <div class="value" id="avgLatency">-</div>
                 <span class="unit">ms</span>
@@ -423,41 +339,6 @@
                 <h3>RMS Médio</h3>
                 <div class="value" id="avgPowerQuality">-</div>
                 <span class="unit">A</span>
-            </div>
-        </div>
-
-        <!-- Eventos Críticos -->
-        <div class="events-section">
-            <h2>🚨 Eventos Críticos</h2>
-            
-            <div class="event-categories">
-                <div class="category-filter" data-category="all" onclick="reportsManager.filterEventCategory('all')">
-                    <span class="count" id="count-all">0</span>
-                    <span class="label">Todos</span>
-                </div>
-                <div class="category-filter" data-category="power_outage" onclick="reportsManager.filterEventCategory('power_outage')">
-                    <span class="count" id="count-power_outage">0</span>
-                    <span class="label">Queda de Energia</span>
-                </div>
-                <div class="category-filter" data-category="network_outage" onclick="reportsManager.filterEventCategory('network_outage')">
-                    <span class="count" id="count-network_outage">0</span>
-                    <span class="label">Queda de Rede</span>
-                </div>
-                <div class="category-filter" data-category="critical_latency" onclick="reportsManager.filterEventCategory('critical_latency')">
-                    <span class="count" id="count-critical_latency">0</span>
-                    <span class="label">Latência Crítica</span>
-                </div>
-                <div class="category-filter" data-category="power_quality" onclick="reportsManager.filterEventCategory('power_quality')">
-                    <span class="count" id="count-power_quality">0</span>
-                    <span class="label">Qualidade Energia</span>
-                </div>
-            </div>
-
-            <div id="eventsTableContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Carregando eventos...</p>
-                </div>
             </div>
         </div>
 
@@ -478,9 +359,7 @@
     <script>
         class ReportsManager {
             constructor() {
-                this.currentEventCategory = 'all';
                 this.currentReadingType = '';
-                this.allEvents = [];
                 this.allReadings = [];
                 this.init();
             }
@@ -543,8 +422,6 @@
                     };
 
                     this.updateStats(averages);
-                    this.updateEventCounts();
-                    this.renderEvents();
                     this.renderReadings();
                 } catch (error) {
                     console.error('Erro ao carregar dados:', error);
@@ -553,84 +430,10 @@
 
             updateStats(averages) {
                 document.getElementById('totalReadings').textContent = this.allReadings.length;
-                document.getElementById('totalEvents').textContent = this.allEvents.length;
                 document.getElementById('avgLatency').textContent = 
                     averages.latency?.average?.toFixed(2) || '-';
                 document.getElementById('avgPowerQuality').textContent = 
                     averages.rms?.average?.toFixed(2) || '-';
-            }
-
-            updateEventCounts() {
-                const counts = {
-                    all: this.allEvents.length,
-                    power_outage: 0,
-                    network_outage: 0,
-                    critical_latency: 0,
-                    power_quality: 0
-                };
-
-                this.allEvents.forEach(event => {
-                    if (counts[event.category] !== undefined) {
-                        counts[event.category]++;
-                    }
-                });
-
-                Object.keys(counts).forEach(category => {
-                    const el = document.getElementById(`count-${category}`);
-                    if (el) el.textContent = counts[category];
-                });
-            }
-
-            filterEventCategory(category) {
-                this.currentEventCategory = category;
-                
-                // Atualizar UI dos filtros
-                document.querySelectorAll('.category-filter').forEach(el => {
-                    el.classList.remove('active');
-                });
-                document.querySelector(`[data-category="${category}"]`).classList.add('active');
-                
-                this.renderEvents();
-            }
-
-            renderEvents() {
-                const container = document.getElementById('eventsTableContainer');
-                
-                let filteredEvents = this.allEvents;
-                if (this.currentEventCategory !== 'all') {
-                    filteredEvents = this.allEvents.filter(e => e.category === this.currentEventCategory);
-                }
-
-                if (filteredEvents.length === 0) {
-                    container.innerHTML = '<div class="no-data"><i class="fas fa-inbox"></i><p>Nenhum evento encontrado</p></div>';
-                    return;
-                }
-
-                const tableHTML = `
-                    <table class="events-table">
-                        <thead>
-                            <tr>
-                                <th><i class="far fa-clock"></i> Data/Hora</th>
-                                <th><i class="fas fa-tag"></i> Categoria</th>
-                                <th><i class="fas fa-info-circle"></i> Tipo</th>
-                                <th><i class="fas fa-comment"></i> Mensagem</th>
-                                <th><i class="fas fa-chart-bar"></i> Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${filteredEvents.map(event => `
-                                <tr>
-                                    <td>${new Date(event.timestamp).toLocaleString('pt-BR')}</td>
-                                    <td><span class="event-badge badge-${event.category}">${this.getCategoryLabel(event.category)}</span></td>
-                                    <td>${event.type}</td>
-                                    <td>${event.message}</td>
-                                    <td>${event.value || '-'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = tableHTML;
             }
 
             renderReadings() {
@@ -669,17 +472,6 @@
                     </table>
                 `;
                 container.innerHTML = tableHTML;
-            }
-
-            getCategoryLabel(category) {
-                const labels = {
-                    power_outage: 'Queda de Energia',
-                    network_outage: 'Queda de Rede',
-                    critical_latency: 'Latência Crítica',
-                    power_quality: 'Qualidade Energia',
-                    other: 'Outro'
-                };
-                return labels[category] || category;
             }
 
             getReadingTypeLabel(type) {
