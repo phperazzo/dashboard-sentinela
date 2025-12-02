@@ -384,3 +384,8 @@ Erro MQTT: Error: read ECONNRESET
 ⚠️ Evento crítico: network_restored - rede voltou
 📤 Broadcasting WebSocket: undefined 1 clientes
 📤 Broadcasting WebSocket: mqtt_message 1 clientes
+❌ Cliente WebSocket desconectado
+✅ Novo cliente WebSocket conectado
+❌ Cliente WebSocket desconectado
+✅ Novo cliente WebSocket conectado
+❌ Cliente WebSocket desconectado

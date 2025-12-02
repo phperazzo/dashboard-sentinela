@@ -392,7 +392,6 @@
                         <select id="readingTypeFilter">
                             <option value="">Todos</option>
                             <option value="latency">Latência</option>
-                            <option value="voltage">Voltagem</option>
                             <option value="rms">RMS</option>
                         </select>
 
@@ -669,7 +668,6 @@
             getReadingTypeLabel(type) {
                 const labels = {
                     latency: 'Latência',
-                    voltage: 'Voltagem',
                     rms: 'RMS'
                 };
                 return labels[type] || type;

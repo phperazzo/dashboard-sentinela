@@ -2,8 +2,7 @@ class SentinelaDashboard {
     constructor() {
         this.dataHistory = {
             latency: [],      // Latência da rede (ms)
-            voltage: [],      // Voltagem da energia (V)
-            rms: [],          // RMS
+            rms: [],          // RMS - corrente
             network: [],      // Status da rede
             timestamps: []
         };
@@ -11,7 +10,6 @@ class SentinelaDashboard {
         // Últimos valores reais para tooltips
         this.lastRealValues = {
             latency: 0,
-            voltage: 0,
             rms: 0
         };
 
@@ -60,12 +58,17 @@ class SentinelaDashboard {
         // Polling a cada 5 segundos para pegar últimos dados via API
         setInterval(async () => {
             try {
-                const response = await fetch('/api/readings/all');
+                const response = await fetch('/api/readings/all', {
+                    credentials: 'include', // Incluir cookies de autenticação
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
                 if (response.ok) {
                     const data = await response.json();
                     if (data.syncData) {
-                        // Processar dados síncronos (latency, voltage, rms)
-                        ['latency', 'voltage', 'rms'].forEach(type => {
+                        // Processar dados síncronos (latency, rms)
+                        ['latency', 'rms'].forEach(type => {
                             if (data.syncData[type] && data.syncData[type].length > 0) {
                                 const latest = data.syncData[type][data.syncData[type].length - 1];
                                 this.processSensorData(latest);
@@ -159,40 +162,18 @@ class SentinelaDashboard {
                 this.updateMetric("network", data.value.toFixed(1), this.getLatencyStatus(data.value));
                 break;
 
-            case "voltage":
-            case "voltagem":
-                this.updateRealChart("voltage", data.value, timeLabel, data.unit || "V");
-                this.updateMetric("voltage", data.value.toFixed(1), this.getVoltageStatus(data.value));
-                break;
-
             case "rms":
                 this.updateRealChart("rms", data.value, timeLabel, data.unit || "V");
-                // Atualizar card de RMS (usando id tempValue temporariamente)
-                this.updateMetric("rms", data.value.toFixed(1), { class: "normal", text: "RMS Normal" });
+                this.updateMetric("rms", data.value.toFixed(1), this.getRMSStatus(data.value));
                 break;
             case "rede":
                 // Processar status da rede (ON/OFF) -> Conectado/Desconectado
-                const networkStatus = data.reading.value === "ON" ? "Conectado" : "Desconectado";
-                this.updateMetric("network", networkStatus, this.getNetworkStatusFromValue(data.reading.value));
-                this.updateNetworkKPI(data.reading.value === "ON");
-                break;
-            case "energia":
-                // Processar status da energia (ON/OFF)
-                this.updateMetric("voltage", data.reading.value, this.getEnergyStatus(data.reading.value));
-                break;
-            case "tensao":
-                // Manter compatibilidade com tensão (valor numérico)
-                this.updateRealChart("voltage", data.reading.value, timeLabel, data.reading.unit || "V");
-                this.updateMetric("voltage", data.reading.value.toFixed(1), this.getVoltageStatus(data.reading.value));
-                
-                // Determinar status da rede baseado na tensão
-                const isOnline = data.reading.value > 200;
-                const networkStatusFromVoltage = isOnline ? "Online" : "Offline";
-                this.updateMetric("network", networkStatusFromVoltage, this.getNetworkStatus(isOnline));
-                this.updateNetworkKPI(isOnline);
+                const networkStatus = data.reading?.value === "ON" ? "Conectado" : "Desconectado";
+                this.updateMetric("network", networkStatus, this.getNetworkStatusFromValue(data.reading?.value));
+                this.updateNetworkKPI(data.reading?.value === "ON");
                 break;
             default:
-                console.log("Sensor desconhecido:", data.sensor);
+                console.log("Tipo de sensor desconhecido:", data.type);
         }
         
         this.updateLastUpdateTime();
@@ -215,10 +196,9 @@ class SentinelaDashboard {
         if (healthElement) {
             // Calcular saúde do sistema baseado nos sensores ativos
             let activeSensors = 0;
-            let totalSensors = 3; // latency, voltage, rms
+            let totalSensors = 2; // latency, rms
             
             if (this.dataHistory.latency.length > 0) activeSensors++;
-            if (this.dataHistory.voltage.length > 0) activeSensors++;
             if (this.dataHistory.rms.length > 0) activeSensors++;
             
             const health = Math.round((activeSensors / totalSensors) * 100);
@@ -233,7 +213,6 @@ class SentinelaDashboard {
     initializeEmptyDashboard() {
         this.updateMetric("rms", "--", { class: "disabled", text: "Sem dados" });
         this.updateMetric("latency", "--", { class: "disabled", text: "Sem dados" });
-        this.updateMetric("voltage", "--", { class: "disabled", text: "Sem dados" });
         this.updateConnectionStatus(false);
     }
 
@@ -289,9 +268,16 @@ class SentinelaDashboard {
     }
 
     updateMetric(metricType, value, status) {
-        // Os cards duplicados foram removidos, apenas manter compatibilidade
-        // Os dados são mostrados nos KPIs do topo da página
-        console.log(`Métrica ${metricType}: ${value} - ${status.text}`);
+        // Atualizar KPIs no topo da página
+        const elementId = metricType + 'KPI';
+        const element = document.getElementById(elementId);
+        
+        if (element) {
+            element.textContent = value;
+            console.log(`✅ Métrica ${metricType} atualizada: ${value} - ${status.text}`);
+        } else {
+            console.log(`⚠️ Elemento #${elementId} não encontrado`);
+        }
     }
 
     getLatencyStatus(latency) {
@@ -300,25 +286,11 @@ class SentinelaDashboard {
         else return { class: "normal", text: "Latência normal" };
     }
 
-    getVoltageStatus(voltage) {
-        if (voltage < 200 || voltage > 240) return { class: "danger", text: "Voltagem crítica!" };
-        else if (voltage < 210 || voltage > 230) return { class: "warning", text: "Voltagem instável" };
-        else return { class: "normal", text: "Voltagem normal" };
-    }
-
     getNetworkStatusFromValue(value) {
         if (value === "ON") {
             return { class: "normal", text: "Rede conectada" };
         } else {
             return { class: "danger", text: "Rede desconectada" };
-        }
-    }
-
-    getEnergyStatus(value) {
-        if (value === "ON") {
-            return { class: "normal", text: "Energia estável" };
-        } else {
-            return { class: "danger", text: "Sem energia" };
         }
     }
 
@@ -330,26 +302,11 @@ class SentinelaDashboard {
         }
     }
 
-    getNetworkStatusFromValue(value) {
-        if (value === "ON") {
-            return { class: "normal", text: "Rede conectada" };
-        } else {
-            return { class: "danger", text: "Rede desconectada" };
-        }
-    }
-
-    getEnergyStatus(value) {
-        if (value === "ON") {
-            return { class: "normal", text: "Energia estável" };
-        } else {
-            return { class: "danger", text: "Sem energia" };
-        }
-    }
-
-    getVoltageStatus(voltage) {
-        if (voltage < 200 || voltage > 240) return { class: "danger", text: "Tensão crítica!" };
-        else if (voltage < 210 || voltage > 230) return { class: "warning", text: "Tensão instável" };
-        else return { class: "normal", text: "Tensão estável" };
+    getRMSStatus(rms) {
+        // RMS (corrente) - valores típicos entre 200-230V
+        if (rms < 200 || rms > 240) return { class: "danger", text: "RMS crítico!" };
+        else if (rms < 210 || rms > 230) return { class: "warning", text: "RMS instável" };
+        else return { class: "normal", text: "RMS normal" };
     }
 
     initializeCharts() {
@@ -409,27 +366,6 @@ class SentinelaDashboard {
                     pointBorderColor: '#fff',
                     pointBorderWidth: 3,
                     pointHoverBackgroundColor: '#ff6b6b',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 3,
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: '⚡ Voltagem',
-                    data: [],
-                    borderColor: '#4ecdc4',
-                    backgroundColor: (context) => {
-                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, 400);
-                        gradient.addColorStop(0, 'rgba(78, 205, 196, 0.4)');
-                        gradient.addColorStop(1, 'rgba(78, 205, 196, 0.05)');
-                        return gradient;
-                    },
-                    borderWidth: 4,
-                    pointRadius: 0,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: '#4ecdc4',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 3,
-                    pointHoverBackgroundColor: '#4ecdc4',
                     pointHoverBorderColor: '#fff',
                     pointHoverBorderWidth: 3,
                     tension: 0.4,
@@ -549,7 +485,7 @@ class SentinelaDashboard {
         this.charts.tempHumidityChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Latência', 'Voltagem', 'RMS'],
+                labels: ['Latência', 'RMS'],
                 datasets: [{
                     label: 'Saúde do Sistema (%)',
                     data: [0, 0, 0], // Inicia zerado até receber dados reais
@@ -752,26 +688,17 @@ class SentinelaDashboard {
     }
 
     updateKPIValues() {
-        // Atualizar KPIs somente com dados reais recebidos
-        const rmsKPI = document.getElementById('tempValue');      // RMS usa tempValue
-        const statusKPI = document.getElementById('humidityValue'); // Status Rede usa humidityValue
-        const latencyKPI = document.getElementById('networkValue'); // Latência usa networkValue
-        const voltageKPI = document.getElementById('energyValue');  // Voltagem usa energyValue
+        // Atualizar KPIs diretamente nos elementos corretos
+        const rmsKPI = document.getElementById('rmsKPI');
+        const latencyKPI = document.getElementById('latencyKPI');
         
         if (rmsKPI && this.dataHistory.rms.length > 0) {
-            rmsKPI.textContent = this.dataHistory.rms[this.dataHistory.rms.length - 1].toFixed(1) + ' V';
+            rmsKPI.textContent = this.dataHistory.rms[this.dataHistory.rms.length - 1].toFixed(1);
         }
         
         if (latencyKPI && this.dataHistory.latency.length > 0) {
-            latencyKPI.textContent = this.dataHistory.latency[this.dataHistory.latency.length - 1].toFixed(0) + ' ms';
+            latencyKPI.textContent = this.dataHistory.latency[this.dataHistory.latency.length - 1].toFixed(0);
         }
-        
-        if (voltageKPI && this.dataHistory.voltage.length > 0) {
-            voltageKPI.textContent = this.dataHistory.voltage[this.dataHistory.voltage.length - 1].toFixed(0) + ' V';
-        }
-        
-        // Atualizar status da rede
-        this.updateNetworkStatusCard();
         
         // Atualizar timestamp da última atualização
         const lastDataElement = document.getElementById('lastDataReceived');
@@ -853,7 +780,7 @@ class SentinelaDashboard {
         this.charts.environmentChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Latência', 'Voltagem', 'RMS'],
+                labels: ['Latência', 'RMS'],
                 datasets: [{
                     label: 'Qualidade do Sistema',
                     data: [0, 0, 0],
@@ -920,11 +847,6 @@ class SentinelaDashboard {
                                     if (this.lastRealValues.latency < 50) status = ' ✅ Ótimo';
                                     else if (this.lastRealValues.latency < 100) status = ' 👍 Bom';
                                     else if (this.lastRealValues.latency < 200) status = ' ⚠️ Atenção';
-                                    else status = ' 🔴 Crítico';
-                                } else if (label.includes('Voltagem')) {
-                                    realValue = `${this.lastRealValues.voltage.toFixed(1)} V`;
-                                    if (this.lastRealValues.voltage >= 210 && this.lastRealValues.voltage <= 230) status = ' ✅ Normal';
-                                    else if (this.lastRealValues.voltage >= 200 && this.lastRealValues.voltage <= 240) status = ' ⚠️ Atenção';
                                     else status = ' 🔴 Crítico';
                                 } else if (label.includes('RMS')) {
                                     realValue = `${this.lastRealValues.rms.toFixed(1)} V`;
@@ -1012,8 +934,7 @@ class SentinelaDashboard {
             
             chart.data.labels = timestamps;
             chart.data.datasets[0].data = this.dataHistory.latency.slice(-15);
-            chart.data.datasets[1].data = this.dataHistory.voltage.slice(-15);
-            chart.data.datasets[2].data = this.dataHistory.rms.slice(-15);
+            chart.data.datasets[1].data = this.dataHistory.rms.slice(-15);
             
             chart.update('none');
         } else {
@@ -1026,14 +947,11 @@ class SentinelaDashboard {
             
             const latency = this.dataHistory.latency.length > 0 ? 
                 this.dataHistory.latency[this.dataHistory.latency.length - 1] : 0;
-            const voltage = this.dataHistory.voltage.length > 0 ? 
-                this.dataHistory.voltage[this.dataHistory.voltage.length - 1] : 0;
             const rms = this.dataHistory.rms.length > 0 ? 
-                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 0;
+                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 220;
             
             // Armazenar valores reais
             this.lastRealValues.latency = latency;
-            this.lastRealValues.voltage = voltage;
             this.lastRealValues.rms = rms;
             
             // Normalizar para percentual de qualidade (0-100%)
@@ -1046,23 +964,15 @@ class SentinelaDashboard {
             else if (latency > 100) latencyPercent = 60;
             else if (latency > 50) latencyPercent = 80;
             
-            // Voltagem: 210-230V = 100%, fora de 190-250V = 0%
-            let voltagePercent = 100;
-            if (voltage >= 210 && voltage <= 230) voltagePercent = 100;
-            else if (voltage >= 205 && voltage <= 235) voltagePercent = 80;
-            else if (voltage >= 200 && voltage <= 240) voltagePercent = 60;
-            else if (voltage >= 190 && voltage <= 250) voltagePercent = 30;
-            else voltagePercent = 0; // Fora da faixa = 0%
-            
-            // RMS: 120-130V = 100%, fora de 100-150V = 0%
+            // RMS: 210-230V = 100%, fora de 190-250V = 0%
             let rmsPercent = 100;
-            if (rms >= 120 && rms <= 130) rmsPercent = 100;
-            else if (rms >= 115 && rms <= 135) rmsPercent = 80;
-            else if (rms >= 110 && rms <= 140) rmsPercent = 60;
-            else if (rms >= 100 && rms <= 150) rmsPercent = 30;
+            if (rms >= 210 && rms <= 230) rmsPercent = 100;
+            else if (rms >= 205 && rms <= 235) rmsPercent = 80;
+            else if (rms >= 200 && rms <= 240) rmsPercent = 60;
+            else if (rms >= 190 && rms <= 250) rmsPercent = 30;
             else rmsPercent = 0; // Fora da faixa = 0%
             
-            chart.data.datasets[0].data = [latencyPercent, voltagePercent, rmsPercent];
+            chart.data.datasets[0].data = [latencyPercent, rmsPercent];
             chart.update('none');
         }
         
@@ -1073,10 +983,8 @@ class SentinelaDashboard {
             // Calcular saúde de cada métrica (0-100%)
             const latency = this.dataHistory.latency.length > 0 ? 
                 this.dataHistory.latency[this.dataHistory.latency.length - 1] : 0;
-            const voltage = this.dataHistory.voltage.length > 0 ? 
-                this.dataHistory.voltage[this.dataHistory.voltage.length - 1] : 220;
             const rms = this.dataHistory.rms.length > 0 ? 
-                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 127;
+                this.dataHistory.rms[this.dataHistory.rms.length - 1] : 220;
             
             // Calcular percentuais de saúde
             // Latência: 0-50ms = 100%, 50-100ms = 80%, 100-200ms = 60%, 200-400ms = 30%, >400ms = 10%
@@ -1086,30 +994,21 @@ class SentinelaDashboard {
             else if (latency > 100) latencyHealth = 60;
             else if (latency > 50) latencyHealth = 80;
             
-            // Voltagem: 210-230V = 100%, 205-235V = 80%, 200-240V = 60%, 190-250V = 30%, fora = 10%
-            let voltageHealth = 100;
-            if (voltage >= 210 && voltage <= 230) voltageHealth = 100;
-            else if (voltage >= 205 && voltage <= 235) voltageHealth = 80;
-            else if (voltage >= 200 && voltage <= 240) voltageHealth = 60;
-            else if (voltage >= 190 && voltage <= 250) voltageHealth = 30;
-            else voltageHealth = 10;
-            
-            // RMS: 120-130V = 100%, 115-135V = 80%, 110-140V = 60%, 100-150V = 30%, fora = 10%
+            // RMS: 210-230V = 100%, 205-235V = 80%, 200-240V = 60%, 190-250V = 30%, fora = 10%
             let rmsHealth = 100;
-            if (rms >= 120 && rms <= 130) rmsHealth = 100;
-            else if (rms >= 115 && rms <= 135) rmsHealth = 80;
-            else if (rms >= 110 && rms <= 140) rmsHealth = 60;
-            else if (rms >= 100 && rms <= 150) rmsHealth = 30;
+            if (rms >= 210 && rms <= 230) rmsHealth = 100;
+            else if (rms >= 205 && rms <= 235) rmsHealth = 80;
+            else if (rms >= 200 && rms <= 240) rmsHealth = 60;
+            else if (rms >= 190 && rms <= 250) rmsHealth = 30;
             else rmsHealth = 10;
 
             console.log('🔍 DEBUG SAÚDE:', { 
                 latencia: `${latency.toFixed(1)}ms → ${latencyHealth}%`,
-                voltagem: `${voltage.toFixed(1)}V → ${voltageHealth}%`,
                 rms: `${rms.toFixed(1)}V → ${rmsHealth}%`,
-                dados: [latencyHealth, voltageHealth, rmsHealth]
+                dados: [latencyHealth, rmsHealth]
             });
             
-            chart.data.datasets[0].data = [latencyHealth, voltageHealth, rmsHealth];
+            chart.data.datasets[0].data = [latencyHealth, rmsHealth];
             chart.update('none');
         }
     }

@@ -118,34 +118,26 @@
                 <section class="kpi-section">
                     <div class="kpi-card temperature-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">RMS</span>
-                            <i class="fas fa-wave-square"></i>
+                            <span class="kpi-label">RMS (Corrente)</span>
+                            <i class="fas fa-bolt"></i>
                         </div>
-                        <div class="kpi-value" id="tempValue">-- V</div>
-                    </div>
-
-                    <div class="kpi-card humidity-status">
-                        <div class="kpi-header">
-                            <span class="kpi-label">Internet</span>
-                            <i class="fas fa-globe"></i>
-                        </div>
-                        <div class="kpi-value" id="humidityValue">Offline</div>
+                        <div class="kpi-value"><span id="rmsKPI">--</span> V</div>
                     </div>
 
                     <div class="kpi-card network-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">Latência</span>
+                            <span class="kpi-label">Latência (Rede)</span>
                             <i class="fas fa-wifi"></i>
                         </div>
-                        <div class="kpi-value" id="networkValue">-- ms</div>
+                        <div class="kpi-value"><span id="latencyKPI">--</span> ms</div>
                     </div>
 
-                    <div class="kpi-card energy-status">
+                    <div class="kpi-card humidity-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">Voltagem</span>
-                            <i class="fas fa-bolt"></i>
+                            <span class="kpi-label">Status Internet</span>
+                            <i class="fas fa-globe"></i>
                         </div>
-                        <div class="kpi-value" id="energyValue">-- V</div>
+                        <div class="kpi-value" id="humidityValue">Offline</div>
                     </div>
                 </section>
 

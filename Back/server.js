@@ -67,8 +67,7 @@ class SentinelaBackend {
         // Armazenamento de dados síncronos periódicos
         this.syncData = {
             latency: [],      // Latência da rede (ms)
-            voltage: [],      // Voltagem da energia (V)
-            rms: []           // RMS (Root Mean Square)
+            rms: []           // RMS (Root Mean Square) - corrente
         };
         // Armazenamento de todas as leituras
         this.allReadings = [];
@@ -137,10 +136,10 @@ class SentinelaBackend {
         
         // Servir arquivos estáticos com autenticação
         this.app.use('/login.html', express.static('../login.html'));
-        this.app.use('/dashboard.html', this.authenticateToken, express.static('../dashboard.html'));
+        this.app.use('/dashboard.html', express.static('../dashboard.html'));
         this.app.use('/settings.html', this.authenticateToken, express.static('../settings.html'));
         this.app.use('/styles.css', express.static('../styles.css'));
-        this.app.use('/script.js', this.authenticateToken, express.static('../script.js'));
+        this.app.use('/script.js', express.static('../script.js'));
         
         // Redirecionar root para login
         this.app.get('/', (req, res) => {
@@ -339,7 +338,11 @@ class SentinelaBackend {
         this.app.get('/api/readings/all', this.authenticateToken, (req, res) => {
             res.json({
                 success: true,
-                data: this.allReadings,
+                syncData: {
+                    latency: this.syncData.latency,
+                    rms: this.syncData.rms
+                },
+                allReadings: this.allReadings,
                 count: this.allReadings.length,
                 timestamp: new Date().toISOString()
             });
@@ -423,18 +426,6 @@ class SentinelaBackend {
                 max: Math.max(...latencyValues),
                 count: latencyValues.length,
                 unit: 'ms'
-            };
-        }
-
-        // Média de voltagem
-        if (this.syncData.voltage.length > 0) {
-            const voltageValues = this.syncData.voltage.map(d => d.value);
-            result.voltage = {
-                avg: (voltageValues.reduce((a, b) => a + b, 0) / voltageValues.length).toFixed(2),
-                min: Math.min(...voltageValues),
-                max: Math.max(...voltageValues),
-                count: voltageValues.length,
-                unit: 'V'
             };
         }
 
@@ -524,15 +515,61 @@ class SentinelaBackend {
         });
 
         this.mqttClient.on('message', (topic, message) => {
+            console.log(`\n🔔 EVENTO MESSAGE DISPARADO! Tópico: ${topic}`);
             let payload;
             try {
                 const messageStr = message.toString();
+                console.log(`📨 Mensagem bruta do tópico '${topic}':`, messageStr);
+                
                 // Validar tamanho máximo da mensagem
                 if (messageStr.length > 10000) {
                     console.warn('Mensagem MQTT muito grande, ignorando');
                     return;
                 }
-                payload = JSON.parse(messageStr);
+                
+                // Tentar fazer parse como JSON primeiro
+                try {
+                    const parsed = JSON.parse(messageStr);
+                    console.log('✅ Parsed como JSON:', parsed, 'tipo:', typeof parsed);
+                    
+                    // Se for um número ou string, converter para objeto
+                    if (typeof parsed === 'number') {
+                        if (topic.includes('rms')) {
+                            payload = { type: 'rms', value: parsed, unit: 'V' };
+                        } else if (topic.includes('latencia') || topic.includes('ms')) {
+                            payload = { type: 'latency', value: parsed, unit: 'ms' };
+                        } else {
+                            payload = { value: parsed };
+                        }
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        payload = parsed;
+                    } else {
+                        // String ou outro tipo primitivo
+                        payload = { message: String(parsed) };
+                    }
+                } catch (jsonError) {
+                    // Se não for JSON válido, tratar como valor numérico direto
+                    const numValue = parseFloat(messageStr);
+                    console.log('🔢 Tentando parsear como número:', numValue, 'isNaN:', isNaN(numValue));
+                    if (!isNaN(numValue)) {
+                        // Determinar tipo baseado no tópico
+                        if (topic.includes('rms')) {
+                            payload = { type: 'rms', value: numValue, unit: 'V' };
+                        } else if (topic.includes('latencia') || topic.includes('ms')) {
+                            payload = { type: 'latency', value: numValue, unit: 'ms' };
+                        } else if (topic.includes('alerta')) {
+                            payload = { message: messageStr, timestamp: new Date().toISOString() };
+                        } else {
+                            // Valor genérico
+                            payload = { value: numValue };
+                        }
+                        console.log('✅ Payload criado:', payload);
+                    } else {
+                        // Mensagem de texto simples
+                        payload = { message: messageStr };
+                    }
+                }
+                
                 // Validar estrutura básica
                 if (typeof payload !== 'object' || payload === null) {
                     throw new Error('Payload inválido');
@@ -558,6 +595,76 @@ class SentinelaBackend {
         });
     }
 
+    async setupExternalAPI() {
+        const fs = require('fs');
+        const path = require('path');
+        let config;
+        try {
+            const configPath = path.resolve(__dirname, '..', 'config.json');
+            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch (err) {
+            console.error('Erro ao ler config.json para API externa:', err);
+            return;
+        }
+
+        const apiConfig = config.api;
+        if (!apiConfig) {
+            console.warn('⚠️ Configuração de API externa não encontrada');
+            return;
+        }
+
+        console.log('🌐 Configurando polling da API externa...');
+        
+        // Função para buscar dados da API
+        const fetchExternalData = async () => {
+            try {
+                const fetch = (await import('node-fetch')).default;
+                
+                // Buscar dados do /sincrono
+                const sincronoResponse = await fetch(`${apiConfig.baseUrl}/sincrono`);
+                const sincronoData = await sincronoResponse.json();
+                
+                if (Array.isArray(sincronoData) && sincronoData.length > 0) {
+                    // Processar os últimos dados recebidos
+                    sincronoData.slice(-10).forEach(item => {
+                        const reading = {
+                            value: item.valorEvento,
+                            unit: item.unidade,
+                            timestamp: item.horaEvento,
+                            type: item.evento === 1 ? 'rms' : 'latency',
+                            source: 'api'
+                        };
+                        
+                        if (item.evento === 1) {
+                            this.syncData.rms.push(reading);
+                            if (this.syncData.rms.length > 100) this.syncData.rms.shift();
+                        } else {
+                            this.syncData.latency.push(reading);
+                            if (this.syncData.latency.length > 100) this.syncData.latency.shift();
+                        }
+                    });
+                    
+                    console.log(`📊 API Externa: ${sincronoData.length} leituras processadas`);
+                    
+                    // Broadcast para clientes WebSocket
+                    this.broadcastToWebSocket({
+                        type: 'api_data',
+                        data: { count: sincronoData.length }
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Erro ao buscar dados da API externa:', error.message);
+            }
+        };
+
+        // Buscar dados imediatamente
+        await fetchExternalData();
+        
+        // Configurar polling a cada 10 segundos
+        setInterval(fetchExternalData, 10000);
+        console.log('✅ Polling da API externa ativado (10s)');
+    }
+
     initializeServer() {
         this.port = process.env.PORT || 3000;
         this.wsClients = new Set(); // Clientes WebSocket conectados
@@ -565,6 +672,7 @@ class SentinelaBackend {
         this.wss = null;
         this.setupServerAndWebSocket();
         this.setupMQTT();
+        this.setupExternalAPI();
     }
 
     setupServerAndWebSocket() {
@@ -671,64 +779,53 @@ class SentinelaBackend {
         const timestamp = new Date().toISOString();
         const config = this.loadMQTTConfig();
         
-        // Determinar se é tópico síncrono ou assíncrono
+        // Determinar tipo baseado no tópico ou payload
+        const isAlertTopic = topic.includes('alerta') || topic === config?.topics?.alerta;
+        const isRMSTopic = topic.includes('rms') || topic === config?.topics?.rms;
+        const isMSTopic = topic.includes('ms') || topic === config?.topics?.ms;
+        
+        // Também aceitar tópicos antigos para retrocompatibilidade
         const isAsyncTopic = topic === config?.topics?.async;
         const isSyncTopic = topic === config?.topics?.sync;
 
-        // Processar dados SÍNCRONOS (periódicos): latência, voltagem, RMS
-        if (isSyncTopic) {
-            // Latência da rede
-            if (payload.type === 'latency' || payload.type === 'latencia') {
-                const latencyData = {
-                    value: payload.value,
-                    unit: payload.unit || 'ms',
-                    timestamp,
-                    type: 'latency'
-                };
-                this.syncData.latency.push(latencyData);
-                this.allReadings.push(latencyData);
-                
-                // Manter apenas últimas 500 leituras
-                if (this.syncData.latency.length > 500) {
-                    this.syncData.latency.shift();
-                }
-            }
+        // Processar dados SÍNCRONOS (periódicos): latência e RMS
+        // Latência da rede (tópico sistema/ms)
+        if (payload.type === 'latency' || payload.type === 'latencia') {
+            const latencyData = {
+                value: payload.value,
+                unit: payload.unit || 'ms',
+                timestamp,
+                type: 'latency'
+            };
+            this.syncData.latency.push(latencyData);
+            this.allReadings.push(latencyData);
             
-            // Voltagem da energia
-            if (payload.type === 'voltage' || payload.type === 'voltagem') {
-                const voltageData = {
-                    value: payload.value,
-                    unit: payload.unit || 'V',
-                    timestamp,
-                    type: 'voltage'
-                };
-                this.syncData.voltage.push(voltageData);
-                this.allReadings.push(voltageData);
-                
-                if (this.syncData.voltage.length > 500) {
-                    this.syncData.voltage.shift();
-                }
+            // Manter apenas últimas 500 leituras
+            if (this.syncData.latency.length > 500) {
+                this.syncData.latency.shift();
             }
+            console.log('✅ Dados de latência armazenados:', latencyData);
+        }
 
-            // RMS (Root Mean Square)
-            if (payload.type === 'rms') {
-                const rmsData = {
-                    value: payload.value,
-                    unit: payload.unit || '',
-                    timestamp,
-                    type: 'rms'
-                };
-                this.syncData.rms.push(rmsData);
-                this.allReadings.push(rmsData);
-                
-                if (this.syncData.rms.length > 500) {
-                    this.syncData.rms.shift();
-                }
+        // RMS (Root Mean Square) - corrente - tópico sistema/rms
+        else if (payload.type === 'rms') {
+            const rmsData = {
+                value: payload.value,
+                unit: payload.unit || 'V',
+                timestamp,
+                type: 'rms'
+            };
+            this.syncData.rms.push(rmsData);
+            this.allReadings.push(rmsData);
+            
+            if (this.syncData.rms.length > 500) {
+                this.syncData.rms.shift();
             }
+            console.log('✅ Dados de RMS armazenados:', rmsData);
         }
 
         // Processar eventos ASSÍNCRONOS (strings): "energia caiu", "rede caiu", "energia voltou", "rede voltou"
-        if (isAsyncTopic) {
+        if (isAsyncTopic || isAlertTopic) {
             const eventMessage = payload.message || payload.event || payload.description || '';
             
             // Categorizar baseado no conteúdo da mensagem
