@@ -1301,14 +1301,20 @@ class SentinelaDashboard {
             // Toggle sidebar
             menuToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
-                sidebar.classList.toggle('open');
+                const isOpen = sidebar.classList.toggle('open');
                 overlay.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+                document.body.style.overflow = isOpen ? 'hidden' : '';
                 
-                // Debug
+                // Debug detalhado
+                console.log('=== MENU TOGGLE DEBUG ===');
                 console.log('Sidebar classes:', sidebar.className);
                 console.log('Overlay classes:', overlay.className);
-                console.log('Sidebar tem .open?', sidebar.classList.contains('open'));
+                console.log('Sidebar computedStyle transform:', window.getComputedStyle(sidebar).transform);
+                console.log('Sidebar position:', window.getComputedStyle(sidebar).position);
+                console.log('Sidebar z-index:', window.getComputedStyle(sidebar).zIndex);
+                console.log('Sidebar width:', window.getComputedStyle(sidebar).width);
+                console.log('Viewport width:', window.innerWidth);
+                console.log('========================');
             });
 
             // Fechar ao clicar no overlay
