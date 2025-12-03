@@ -1305,16 +1305,11 @@ class SentinelaDashboard {
                 overlay.classList.toggle('active');
                 document.body.style.overflow = isOpen ? 'hidden' : '';
                 
-                // Forçar transform e display via inline style
+                // Forçar transform com !important via setProperty
                 if (isOpen) {
-                    sidebar.style.transform = 'translateX(0) !important';
                     sidebar.style.setProperty('transform', 'translateX(0)', 'important');
-                    sidebar.style.visibility = 'visible';
-                    sidebar.style.display = 'block';
-                    console.log('Menu ABERTO - Transform aplicado:', sidebar.style.transform);
-                    console.log('Computed transform:', window.getComputedStyle(sidebar).transform);
+                    console.log('Menu ABERTO');
                 } else {
-                    sidebar.style.transform = '';
                     sidebar.style.removeProperty('transform');
                     console.log('Menu FECHADO');
                 }
