@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 // Configuração de usuário hardcoded (Vercel não suporta persistência de arquivos)
 const USER_CONFIG = {
     username: 'admin',
-    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // "admin"
+    password: '$2a$10$kCsbEp7oIi1uW.LBK.JfIe3sW/R7qaG1ZDCF5KYhgKfdtkxC0molK', // "admin"
     name: 'Administrador',
     role: 'Administrador do Sistema',
     permissions: ['read', 'write', 'admin']
