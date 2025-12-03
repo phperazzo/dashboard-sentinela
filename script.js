@@ -1289,6 +1289,8 @@ class SentinelaDashboard {
         const menuToggle = document.querySelector('.menu-toggle');
         const sidebar = document.querySelector('.sidebar');
         
+        console.log('🔍 Setup Mobile Menu:', { menuToggle, sidebar });
+        
         if (menuToggle && sidebar) {
             // Criar overlay para mobile
             let overlay = document.querySelector('.sidebar-overlay');
@@ -1301,6 +1303,7 @@ class SentinelaDashboard {
             // Toggle sidebar
             menuToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
+                console.log('📱 Menu toggle clicado!');
                 sidebar.classList.toggle('open');
                 overlay.classList.toggle('active');
                 document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
