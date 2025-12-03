@@ -6,27 +6,10 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/login.html"
-    },
-    {
-      "src": "/index",
-      "dest": "/login.html"
-    },
-    {
-      "src": "/index.html",
-      "dest": "/login.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
+  "rewrites": [
+    { "source": "/", "destination": "/login.html" },
+    { "source": "/index", "destination": "/login.html" },
+    { "source": "/index.html", "destination": "/login.html" }
   ],
   "headers": [
     {
@@ -53,6 +36,27 @@
         {
           "key": "Content-Type",
           "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
         }
       ]
     }
