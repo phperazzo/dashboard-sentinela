@@ -1014,10 +1014,10 @@ canvas {
 /* Tablets e Mobile Grande (768px) */
 @media (max-width: 768px) {
     .sidebar {
-        transform: translateX(-100%) !important;
+        transform: translateX(-100%);
         box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-        z-index: 1001 !important; /* Acima do overlay */
-        position: fixed !important;
+        z-index: 1001; /* Acima do overlay */
+        position: fixed;
     }
     
     .sidebar.open {
