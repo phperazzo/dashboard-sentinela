@@ -1,0 +1,6 @@
+{
+  "dashboard": {
+    "maxDataPoints": 50,
+    "updateInterval": 2000
+  }
+}
