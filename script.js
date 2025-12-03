@@ -116,9 +116,21 @@ class SentinelaDashboard {
             try {
                 const msg = JSON.parse(event.data);
                 
-                // [ADD] Processar eventos críticos em tempo real
+                // Processar eventos críticos em tempo real
                 if (msg.type === "critical_event" && msg.event) {
                     this.displayCriticalEvent(msg.event);
+                    return;
+                }
+                
+                // Processar alertas do tópico sistema/alerta
+                if (msg.topic && msg.topic.includes('alerta')) {
+                    const alertEvent = {
+                        category: msg.payload?.category || 'alert',
+                        message: msg.payload?.message || msg.payload?.event || JSON.stringify(msg.payload),
+                        timestamp: msg.payload?.timestamp || new Date().toISOString(),
+                        value: msg.payload?.value
+                    };
+                    this.displayCriticalEvent(alertEvent);
                     return;
                 }
                 
@@ -1034,11 +1046,110 @@ class SentinelaDashboard {
             this.updateNetworkStatusCard();
         }
         
-        // Apenas logar eventos, sem popup visual
-        // this.showNotification(event);
+        // Exibir popup de alerta
+        this.showAlertPopup(event);
         
         // Adicionar ao log de eventos (se houver área de eventos no dashboard)
         this.addEventToLog(event);
+    }
+
+    showAlertPopup(event) {
+        // Determinar tipo de alerta
+        const alertType = this.getAlertType(event.category);
+        const icon = this.getAlertIcon(event.category);
+        const title = this.getCategoryLabel(event.category);
+        
+        // Criar popup
+        const popup = document.createElement('div');
+        popup.className = 'alert-popup';
+        popup.innerHTML = `
+            <div class="alert-popup-header ${alertType}">
+                <div class="alert-popup-title">
+                    <i class="${icon}"></i>
+                    <span>${title}</span>
+                </div>
+                <button class="alert-popup-close" onclick="this.closest('.alert-popup').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="alert-popup-body">
+                <div class="alert-popup-message">
+                    ${event.message || 'Alerta do sistema'}
+                </div>
+                <div class="alert-popup-details">
+                    <div class="alert-detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span><strong>Horário:</strong> ${new Date(event.timestamp).toLocaleString('pt-BR')}</span>
+                    </div>
+                    ${event.value ? `
+                    <div class="alert-detail-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span><strong>Valor:</strong> ${event.value}</span>
+                    </div>
+                    ` : ''}
+                    <div class="alert-detail-item">
+                        <i class="fas fa-tag"></i>
+                        <span><strong>Categoria:</strong> ${event.category}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="alert-popup-progress">
+                <div class="alert-popup-progress-bar"></div>
+            </div>
+        `;
+        
+        // Adicionar ao body
+        document.body.appendChild(popup);
+        
+        // Animar entrada
+        setTimeout(() => popup.classList.add('show'), 10);
+        
+        // Auto-fechar após 8 segundos
+        const duration = 8000;
+        const progressBar = popup.querySelector('.alert-popup-progress-bar');
+        let elapsed = 0;
+        const interval = setInterval(() => {
+            elapsed += 100;
+            const percentage = (elapsed / duration) * 100;
+            progressBar.style.width = `${percentage}%`;
+            
+            if (elapsed >= duration) {
+                clearInterval(interval);
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 300);
+            }
+        }, 100);
+        
+        // Fechar ao clicar no X
+        popup.querySelector('.alert-popup-close').addEventListener('click', () => {
+            clearInterval(interval);
+            popup.classList.remove('show');
+            setTimeout(() => popup.remove(), 300);
+        });
+    }
+
+    getAlertType(category) {
+        const criticalCategories = ['power_outage', 'network_outage', 'critical'];
+        const warningCategories = ['power_quality', 'critical_latency'];
+        const successCategories = ['power_restored', 'network_restored'];
+        
+        if (criticalCategories.includes(category)) return 'critical';
+        if (warningCategories.includes(category)) return 'warning';
+        if (successCategories.includes(category)) return 'success';
+        return 'info';
+    }
+
+    getAlertIcon(category) {
+        const icons = {
+            'power_outage': 'fas fa-bolt-slash',
+            'network_outage': 'fas fa-wifi-slash',
+            'critical_latency': 'fas fa-clock',
+            'power_quality': 'fas fa-exclamation-triangle',
+            'power_restored': 'fas fa-bolt',
+            'network_restored': 'fas fa-wifi',
+            'critical': 'fas fa-exclamation-circle'
+        };
+        return icons[category] || 'fas fa-bell';
     }
 
     showNotification(event) {

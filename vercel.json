@@ -1,10 +1,8 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/dashboard.html" },
-    { "source": "/index", "destination": "/dashboard.html" },
-    { "source": "/index.html", "destination": "/dashboard.html" },
-    { "source": "/login", "destination": "/dashboard.html" },
-    { "source": "/login.html", "destination": "/dashboard.html" }
+    { "source": "/", "destination": "/login.html" },
+    { "source": "/index", "destination": "/login.html" },
+    { "source": "/index.html", "destination": "/login.html" }
   ],
   "headers": [
     {
@@ -13,6 +11,18 @@
         {
           "key": "Content-Type",
           "value": "application/json"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
         }
       ]
     }
