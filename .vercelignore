@@ -1,12 +1,8 @@
-# Backend completo
+# Backend completo (servidor Node.js local)
 Back/
 
-# APIs serverless
-api/
-
-# Node modules e dependências
+# Node modules (Vercel instala automaticamente)
 node_modules/
-package.json
 package-lock.json
 
 # Logs e runtime
