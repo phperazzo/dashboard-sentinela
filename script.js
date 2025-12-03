@@ -1304,6 +1304,11 @@ class SentinelaDashboard {
                 sidebar.classList.toggle('open');
                 overlay.classList.toggle('active');
                 document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+                
+                // Debug
+                console.log('Sidebar classes:', sidebar.className);
+                console.log('Overlay classes:', overlay.className);
+                console.log('Sidebar tem .open?', sidebar.classList.contains('open'));
             });
 
             // Fechar ao clicar no overlay
