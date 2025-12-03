@@ -5,10 +5,9 @@ Back/
 node_modules/
 package-lock.json
 
-# Logs e runtime
+# Logs
 *.log
 *.pid
-server.log
 
 # Certificados
 certs/
@@ -16,26 +15,21 @@ certs/
 *.key
 *.cert
 
-# TODOS os scripts
+# Scripts locais
 *.sh
 
 # Configuração local
 .env
 .env.*
 user-config.json
-config.json
 
 # Git
 .git/
 .gitignore
 
-# Documentação desnecessária no deploy
-CLEANUP_README.md
-CLEANUP_SUMMARY.md
-DEPLOY_VERCEL.md
-SECURITY.md
-VERIFICATION.md
-LOGIN_CREDENTIALS.md
+# Documentação (deploy usa README.md e DEPLOY_FIX.md)
+*.bak
+*.backup
 
 # Editor
 .vscode/
@@ -44,11 +38,6 @@ LOGIN_CREDENTIALS.md
 # OS
 .DS_Store
 
-# Testes e temporários
+# Testes
 test-*.js
-cookies.txt
-mttq-test.jsw
-
-# Service Worker (pode causar problemas)
-sw.js
 
