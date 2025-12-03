@@ -27,7 +27,6 @@ class SentinelaDashboard {
         this.internetStatus = 'offline'; // Status da internet: 'online' ou 'offline'
         this.lastDataTimestamp = null;
         this.internetCheckInterval = null;
-        this.demoMode = window.location.hostname.includes('vercel.app'); // Detectar Vercel
         
         this.loadConfig().then(() => {
             this.init();
@@ -42,10 +41,7 @@ class SentinelaDashboard {
                 this.maxDataPoints = this.config.dashboard?.maxDataPoints || 50;
             }
         } catch (err) {
-            // Ignorar erro se config.json não existir (modo demo)
-            if (!this.demoMode) {
-                console.warn("Config.json não encontrado, usando valores padrão");
-            }
+            console.warn("Config.json não encontrado, usando valores padrão");
             this.maxDataPoints = 50;
         }
     }
@@ -54,70 +50,9 @@ class SentinelaDashboard {
         this.setupEventListeners();
         this.initializeCharts();
         this.initializeEmptyDashboard();
-        
-        if (this.demoMode) {
-            console.log('🎭 Modo DEMO ativado - Dados simulados');
-            this.startDemoMode();
-        } else {
-            this.connectToWebSocket();
-            this.startInternetMonitoring();
-            this.startPollingData();
-        }
-    }
-
-    startDemoMode() {
-        // Simular conexão estabelecida
-        this.updateConnectionStatus(true);
-        this.updateMQTTStatus(true);
-        this.updateInternetStatus('online');
-        this.updateNetworkStatus('online');
-        
-        // Adicionar badge de modo demo
-        const header = document.querySelector('.dashboard-header h2');
-        if (header && !header.querySelector('.demo-badge')) {
-            const badge = document.createElement('span');
-            badge.className = 'demo-badge';
-            badge.textContent = '🎭 MODO DEMO';
-            badge.style.cssText = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-left: 12px; font-weight: 600;';
-            header.appendChild(badge);
-        }
-        
-        // Gerar dados simulados a cada 2 segundos
-        this.generateDemoData();
-        setInterval(() => this.generateDemoData(), 2000);
-    }
-    
-    generateDemoData() {
-        const now = new Date();
-        
-        // Simular dados de latência (20-100ms)
-        const latency = {
-            type: 'latency',
-            value: Math.floor(Math.random() * 80) + 20,
-            timestamp: now.toISOString()
-        };
-        
-        // Simular dados de RMS (0.5-2.5)
-        const rms = {
-            type: 'rms',
-            value: (Math.random() * 2) + 0.5,
-            timestamp: now.toISOString()
-        };
-        
-        // Processar dados simulados
-        this.processSensorData(latency);
-        this.processSensorData(rms);
-        
-        // Simular eventos aleatórios ocasionalmente
-        if (Math.random() > 0.95) {
-            const events = [
-                { type: 'alerta', message: 'Latência acima do normal', severity: 'warning' },
-                { type: 'alerta', message: 'Sistema operando normalmente', severity: 'info' },
-                { type: 'alerta', message: 'RMS estável', severity: 'success' }
-            ];
-            const randomEvent = events[Math.floor(Math.random() * events.length)];
-            this.handleCriticalEvent(randomEvent);
-        }
+        this.connectToWebSocket();
+        this.startInternetMonitoring();
+        this.startPollingData();
     }
 
     startPollingData() {
@@ -144,20 +79,12 @@ class SentinelaDashboard {
                     console.warn('⚠️ Rate limit atingido, aguardando...');
                 }
             } catch (err) {
-                // Silenciar erro em modo demo
-                if (!this.demoMode) {
-                    console.error('Erro ao buscar dados via API:', err);
-                }
+                console.error('Erro ao buscar dados via API:', err);
             }
         }, 5000);
     }
 
     connectToWebSocket() {
-        // Não conectar WebSocket em modo demo
-        if (this.demoMode) {
-            return;
-        }
-        
         let wsUrl;
         if (window.location.protocol === "https:") {
             wsUrl = "wss://" + window.location.host;
