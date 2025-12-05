@@ -396,7 +396,7 @@ class SentinelaBackend {
         // ----------------- Rotas existentes -----------------
 
         // A) Endpoint: todas as leituras periódicas (síncronas)
-        this.app.get('/api/readings/all', this.authenticateToken, (req, res) => {
+        this.app.get('/api/readings/all', (req, res) => {
             res.json({
                 success: true,
                 syncData: {
@@ -410,7 +410,7 @@ class SentinelaBackend {
         });
 
         // B) Endpoint: leituras filtradas por tipo (latency, voltage, rms)
-        this.app.get('/api/readings/filter/:type', this.authenticateToken, (req, res) => {
+        this.app.get('/api/readings/filter/:type', (req, res) => {
             const { type } = req.params;
             const validTypes = ['latency', 'voltage', 'rms', 'latencia', 'voltagem'];
             
@@ -436,7 +436,7 @@ class SentinelaBackend {
         });
 
         // C) Endpoint: médias dos dados síncronos (latência, voltagem, RMS)
-        this.app.get('/api/readings/averages', this.authenticateToken, (req, res) => {
+        this.app.get('/api/readings/averages', (req, res) => {
             const averages = this.calculateAverages();
             res.json({
                 success: true,
@@ -446,7 +446,7 @@ class SentinelaBackend {
         });
 
         // D) Endpoint: eventos críticos assíncronos (strings)
-        this.app.get('/api/events/critical', this.authenticateToken, (req, res) => {
+        this.app.get('/api/events/critical', (req, res) => {
             res.json({
                 success: true,
                 data: this.criticalEvents,
@@ -456,7 +456,7 @@ class SentinelaBackend {
         });
 
         // E) Endpoint: dados síncronos separados por tipo
-        this.app.get('/api/data/sync', this.authenticateToken, (req, res) => {
+        this.app.get('/api/data/sync', (req, res) => {
             res.json({
                 success: true,
                 data: {
@@ -647,6 +647,7 @@ class SentinelaBackend {
             this.broadcastToWebSocket({
                 type: 'mqtt_message',
                 topic,
+                payload,
                 data: payload
             });
         });
@@ -844,6 +845,31 @@ class SentinelaBackend {
         const isAlertTopic = topic.includes('alerta') || topic === config?.topics?.alerta;
         const isRMSTopic = topic.includes('rms') || topic === config?.topics?.rms;
         const isMSTopic = topic.includes('ms') || topic === config?.topics?.ms;
+        const isRobotTopic = topic.includes('robot/cycle_summary') || topic === config?.topics?.robot;
+        const isArmTopic = topic.includes('arm/data') || topic === config?.topics?.arm;
+        const isDroneTopic = topic.includes('robot/drone') || topic === config?.topics?.drone;
+        
+        // Processar dados do robô
+        if (isRobotTopic) {
+            console.log('🤖 Dados do robô recebidos:', payload);
+            // Os dados já serão transmitidos via WebSocket pelo broadcastToWebSocket
+            // que é chamado logo após processMQTTMessage
+            return;
+        }
+        
+        // Processar dados do braço
+        if (isArmTopic) {
+            console.log('🦾 Dados do braço recebidos:', payload);
+            // Os dados já serão transmitidos via WebSocket
+            return;
+        }
+        
+        // Processar dados do drone
+        if (isDroneTopic) {
+            console.log('🚁 Dados do drone recebidos:', payload);
+            // Os dados já serão transmitidos via WebSocket
+            return;
+        }
         
         // Também aceitar tópicos antigos para retrocompatibilidade
         const isAsyncTopic = topic === config?.topics?.async;

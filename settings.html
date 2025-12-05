@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Configurações - Sentinela</title>
+    <title>Drone - Carro Aspirador</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
@@ -263,286 +263,267 @@
     </style>
 </head>
 <body>
-    <a href="/dashboard.html" class="back-btn">
-        <i class="fas fa-arrow-left"></i>
-        Voltar ao Dashboard
-    </a>
-
-    <div class="content-wrapper">
-        <div class="settings-container">
-            <h1 style="text-align: center; margin-bottom: 40px; color: #2c3e50;">
-                <i class="fas fa-cog"></i> Configurações do Sistema
-            </h1>
-
-            <!-- Informações da Conta -->
-            <div class="settings-section">
-                <h2 class="section-title">
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="user-profile">
+                <div class="profile-avatar">
                     <i class="fas fa-user"></i>
-                    Informações da Conta
-                </h2>
-                
-                <div class="info-card">
-                    <h4>Usuário Logado</h4>
-                    <p id="currentUser">Carregando...</p>
                 </div>
-
-                <div class="info-card">
-                    <h4>Última Alteração de Senha</h4>
-                    <p id="lastPasswordChange">Carregando...</p>
+                <div class="profile-info">
+                    <h3>Admin</h3>
+                    <p>Administrador</p>
                 </div>
             </div>
 
-            <!-- Alterar Senha -->
-            <div class="settings-section">
-                <h2 class="section-title">
-                    <i class="fas fa-key"></i>
-                    Alterar Senha
-                </h2>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item" onclick="window.location.href='/dashboard.html'">
+                        <i class="fas fa-car"></i>
+                        <span>Carro Aspirador</span>
+                    </li>
+                    <li class="nav-item" onclick="window.location.href='/reports.html'">
+                        <i class="fas fa-robot"></i>
+                        <span>Braço Robótico</span>
+                    </li>
+                    <li class="nav-item active">
+                        <i class="fas fa-drone"></i>
+                        <span>Drone</span>
+                    </li>
+                    <li class="nav-item" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sair</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
 
-                <div id="passwordAlert" class="alert" style="display: none;"></div>
-
-                <form id="changePasswordForm">
-                    <div class="form-group">
-                        <label class="form-label" for="currentPassword">Senha Atual</label>
-                        <input 
-                            type="password" 
-                            id="currentPassword" 
-                            name="currentPassword" 
-                            class="form-input" 
-                            placeholder="Digite sua senha atual"
-                            required
-                        >
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>🚁 Drone</h1>
+                <div class="header-actions">
+                    <div class="connection-status" id="connectionStatus">
+                        <i class="fas fa-wifi"></i>
+                        <span>Conectando...</span>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="newPassword">Nova Senha</label>
-                        <input 
-                            type="password" 
-                            id="newPassword" 
-                            name="newPassword" 
-                            class="form-input" 
-                            placeholder="Digite a nova senha"
-                            required
-                            minlength="4"
-                        >
+                    <div class="connection-status" id="mqttStatus">
+                        <i class="fas fa-database"></i>
+                        <span>MQTT Offline</span>
                     </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="confirmPassword">Confirmar Nova Senha</label>
-                        <input 
-                            type="password" 
-                            id="confirmPassword" 
-                            name="confirmPassword" 
-                            class="form-input" 
-                            placeholder="Confirme a nova senha"
-                            required
-                        >
-                    </div>
-
-                    <div style="display: flex; gap: 15px;">
-                        <button type="submit" class="btn btn-primary" id="savePasswordBtn">
-                            <i class="fas fa-save"></i>
-                            Alterar Senha
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="clearForm()">
-                            <i class="fas fa-times"></i>
-                            Cancelar
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Informações do Sistema -->
-            <div class="settings-section">
-                <h2 class="section-title">
-                    <i class="fas fa-info-circle"></i>
-                    Informações do Sistema
-                </h2>
-
-                <div class="info-card">
-                    <h4>Sistema Sentinela Dashboard</h4>
-                    <p>Versão 1.0.0 - Monitoramento de Data Center</p>
                 </div>
+            </header>
 
-                <div class="info-card">
-                    <h4>Status da Conexão</h4>
-                    <p id="connectionStatus">Verificando...</p>
-                </div>
+            <div class="content-wrapper">
+                <!-- KPI Cards do Drone -->
+                <section class="kpi-section">
+                    <div class="kpi-card drone-id-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">ID do Cubo</span>
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <div class="kpi-value"><span id="droneIdKPI">--</span></div>
+                    </div>
+
+                    <div class="kpi-card drone-cube-pos-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Posição Cubo</span>
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="kpi-value" style="font-size: 1.2rem;"><span id="droneCubePosKPI">--</span></div>
+                    </div>
+
+                    <div class="kpi-card drone-pos-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Posição Drone</span>
+                            <i class="fas fa-drone"></i>
+                        </div>
+                        <div class="kpi-value" style="font-size: 1.2rem;"><span id="dronePosKPI">--</span></div>
+                    </div>
+
+                    <div class="kpi-card drone-distance-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Distância</span>
+                            <i class="fas fa-ruler"></i>
+                        </div>
+                        <div class="kpi-value"><span id="droneDistanceKPI">--</span> m</div>
+                    </div>
+                </section>
+
+                <!-- Stats Card -->
+                <section class="dashboard-grid">
+                    <div class="stats-card">
+                        <div class="stats-header">
+                            <div class="stats-percentage" id="droneHealth">0%</div>
+                        </div>
+                        <div class="stats-details">
+                            <p>Drone Online</p>
+                            <p>Sensores Ativos</p>
+                            <p id="lastDroneDataReceived">Aguardando dados...</p>
+                        </div>
+                        <button class="check-now-btn" onclick="location.reload()">Atualizar</button>
+                    </div>
+                </section>
+
             </div>
-
-        </div>
+        </main>
     </div>
 
     <script>
-        class SettingsManager {
+        async function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login.html';
+        }
+
+        class DroneDashboard {
             constructor() {
-                this.form = document.getElementById('changePasswordForm');
-                this.alert = document.getElementById('passwordAlert');
-                this.saveBtn = document.getElementById('savePasswordBtn');
-                
+                this.ws = null;
+                this.droneData = {};
                 this.init();
             }
 
-            async init() {
-                // Verificar autenticação
-                await this.checkAuth();
-                
-                // Carregar informações do usuário
-                await this.loadUserInfo();
-                
-                // Setup form
-                this.form.addEventListener('submit', this.handlePasswordChange.bind(this));
-                
-                // Validação em tempo real
-                document.getElementById('confirmPassword').addEventListener('input', this.validatePasswords.bind(this));
+            init() {
+                this.connectToWebSocket();
+                this.startInternetMonitoring();
             }
 
-            async checkAuth() {
-                try {
-                    const response = await fetch('/api/auth/check', {
-                        credentials: 'include'
-                    });
+            connectToWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.host;
+                const wsUrl = `${protocol}//${host}`;
+                
+                console.log('🔗 Conectando WebSocket em:', wsUrl);
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('🔌 Conectado ao WebSocket');
+                    this.updateConnectionStatus(true);
+                };
 
-                    if (!response.ok) {
-                        window.location.href = '/login.html';
-                        return;
+                this.ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        console.log('📩 Mensagem:', msg);
+
+                        if (msg.topic && msg.topic.includes('robot/drone')) {
+                            const droneData = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;
+                            console.log('🚁 Dados do drone:', droneData);
+                            this.updateDroneKPIs(droneData);
+                        }
+
+                        if (msg.type === 'mqtt_status') {
+                            this.updateMQTTStatus(msg.connected);
+                        }
+                    } catch (error) {
+                        console.error('Erro:', error);
                     }
-                } catch (error) {
-                    console.error('Erro na verificação de auth:', error);
-                    window.location.href = '/login.html';
-                }
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('❌ Erro WebSocket:', error);
+                    this.updateConnectionStatus(false);
+                };
+
+                this.ws.onclose = () => {
+                    console.log('🔌 Desconectado. Reconectando em 3s...');
+                    this.updateConnectionStatus(false);
+                    setTimeout(() => this.connectToWebSocket(), 3000);
+                };
             }
 
-            async loadUserInfo() {
-                try {
-                    const response = await fetch('/api/user/profile', {
-                        credentials: 'include'
-                    });
+            updateDroneKPIs(data) {
+                if (!data.cubo_removido) return;
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        const user = data.user;
+                const cube = data.cubo_removido;
 
-                        document.getElementById('currentUser').textContent = 
-                            `${user.name} (${user.username}) - ${user.role}`;
-
-                        const lastChange = user.lastPasswordChange ? 
-                            new Date(user.lastPasswordChange).toLocaleString('pt-BR') : 
-                            'Nunca alterada';
-                        
-                        document.getElementById('lastPasswordChange').textContent = lastChange;
-                        
-                        // Status da conexão
-                        document.getElementById('connectionStatus').textContent = 'Conectado e Autenticado';
-                        document.getElementById('connectionStatus').style.color = '#27ae60';
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar informações:', error);
-                    this.showAlert('Erro ao carregar informações do usuário', 'danger');
+                // ID do cubo
+                const idKPI = document.getElementById('droneIdKPI');
+                if (idKPI && cube.id !== undefined) {
+                    idKPI.textContent = cube.id;
                 }
+
+                // Posição do cubo
+                const cubePosKPI = document.getElementById('droneCubePosKPI');
+                if (cubePosKPI && cube.posicao_cubo) {
+                    const [x, y, z] = cube.posicao_cubo;
+                    cubePosKPI.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)} Z:${z.toFixed(2)}`;
+                }
+
+                // Posição do drone
+                const dronePosKPI = document.getElementById('dronePosKPI');
+                if (dronePosKPI && cube.posicao_drone) {
+                    const [x, y, z] = cube.posicao_drone;
+                    dronePosKPI.textContent = `X:${x.toFixed(2)} Y:${y.toFixed(2)} Z:${z.toFixed(2)}`;
+                }
+
+                // Calcular distância entre cubo e drone
+                const distanceKPI = document.getElementById('droneDistanceKPI');
+                if (distanceKPI && cube.posicao_cubo && cube.posicao_drone) {
+                    const [x1, y1, z1] = cube.posicao_cubo;
+                    const [x2, y2, z2] = cube.posicao_drone;
+                    const distance = Math.sqrt(
+                        Math.pow(x2 - x1, 2) + 
+                        Math.pow(y2 - y1, 2) + 
+                        Math.pow(z2 - z1, 2)
+                    );
+                    distanceKPI.textContent = distance.toFixed(2);
+                }
+
+                // Saúde do sistema
+                const healthElement = document.getElementById('droneHealth');
+                if (healthElement) {
+                    healthElement.textContent = '100%';
+                }
+
+                // Timestamp
+                const lastDataElement = document.getElementById('lastDroneDataReceived');
+                if (lastDataElement) {
+                    lastDataElement.textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')}`;
+                    lastDataElement.style.color = '#27ae60';
+                }
+
+                this.droneData = data;
+                console.log('🚁 KPIs atualizados:', data);
             }
 
-            validatePasswords() {
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                
-                if (confirmPassword && newPassword !== confirmPassword) {
-                    document.getElementById('confirmPassword').style.borderColor = '#e74c3c';
-                } else {
-                    document.getElementById('confirmPassword').style.borderColor = '#e9ecef';
-                }
-            }
-
-            async handlePasswordChange(event) {
-                event.preventDefault();
-                
-                const currentPassword = document.getElementById('currentPassword').value;
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-
-                // Validações
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    this.showAlert('Todos os campos são obrigatórios', 'danger');
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    this.showAlert('A confirmação da senha não confere', 'danger');
-                    return;
-                }
-
-                if (newPassword.length < 4) {
-                    this.showAlert('A nova senha deve ter pelo menos 4 caracteres', 'danger');
-                    return;
-                }
-
-                this.setLoading(true);
-
-                try {
-                    const response = await fetch('/api/user/change-password', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({
-                            currentPassword,
-                            newPassword
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        this.showAlert('Senha alterada com sucesso!', 'success');
-                        this.form.reset();
-                        
-                        // Atualizar data da última alteração
-                        const lastChange = new Date(data.lastPasswordChange).toLocaleString('pt-BR');
-                        document.getElementById('lastPasswordChange').textContent = lastChange;
-                        
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.className = 'connection-status connected';
+                        statusElement.innerHTML = '<i class="fas fa-wifi"></i><span>Conectado</span>';
                     } else {
-                        this.showAlert(data.message || 'Erro ao alterar senha', 'danger');
+                        statusElement.className = 'connection-status disconnected';
+                        statusElement.innerHTML = '<i class="fas fa-wifi"></i><span>Desconectado</span>';
                     }
-
-                } catch (error) {
-                    console.error('Erro:', error);
-                    this.showAlert('Erro de conexão. Tente novamente.', 'danger');
-                } finally {
-                    this.setLoading(false);
                 }
             }
 
-            showAlert(message, type) {
-                this.alert.textContent = message;
-                this.alert.className = `alert alert-${type}`;
-                this.alert.style.display = 'block';
-                
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    this.alert.style.display = 'none';
+            updateMQTTStatus(connected) {
+                const statusElement = document.getElementById('mqttStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.className = 'connection-status connected';
+                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>MQTT Online</span>';
+                    } else {
+                        statusElement.className = 'connection-status disconnected';
+                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>MQTT Offline</span>';
+                    }
+                }
+            }
+
+            startInternetMonitoring() {
+                setInterval(() => {
+                    this.updateConnectionStatus(this.ws && this.ws.readyState === WebSocket.OPEN);
                 }, 5000);
             }
-
-            setLoading(loading) {
-                if (loading) {
-                    this.saveBtn.disabled = true;
-                    this.saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Alterando...';
-                } else {
-                    this.saveBtn.disabled = false;
-                    this.saveBtn.innerHTML = '<i class="fas fa-save"></i> Alterar Senha';
-                }
-            }
         }
 
-        function clearForm() {
-            document.getElementById('changePasswordForm').reset();
-            document.getElementById('passwordAlert').style.display = 'none';
-        }
-
-        // Inicializar quando carregar
         document.addEventListener('DOMContentLoaded', () => {
-            new SettingsManager();
+            window.droneDashboard = new DroneDashboard();
         });
     </script>
 </body>

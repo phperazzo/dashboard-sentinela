@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Relatórios - Dashboard Sentinela</title>
+    <title>Braço Robótico - Carro Aspirador</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
@@ -270,16 +270,16 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-item" onclick="window.location.href='/dashboard.html'">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
+                        <i class="fas fa-car"></i>
+                        <span>Carro Aspirador</span>
                     </li>
                     <li class="nav-item active">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Relatórios</span>
+                        <i class="fas fa-robot"></i>
+                        <span>Braço Robótico</span>
                     </li>
                     <li class="nav-item" onclick="window.location.href='/settings.html'">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
+                        <i class="fas fa-drone"></i>
+                        <span>Drone</span>
                     </li>
                     <li class="nav-item" onclick="logout()">
                         <i class="fas fa-sign-out-alt"></i>
@@ -295,7 +295,7 @@
                 <button class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1>📊 Relatórios e Análises</h1>
+                <h1>🦾 Braço Robótico</h1>
                 <div class="header-actions">
                     <div class="connection-status" id="connectionStatus">
                         <i class="fas fa-check-circle"></i>
@@ -305,267 +305,204 @@
             </header>
 
             <div class="content-wrapper">
-                <!-- Filtros -->
-                <div class="filters">
-                    <div class="filter-group">
-                        <label>Tipo de Leitura:</label>
-                        <select id="readingTypeFilter">
-                            <option value="">Todos</option>
-                            <option value="latency">Latência</option>
-                            <option value="rms">RMS</option>
-                        </select>
-
-                        <label>Período:</label>
-                        <input type="datetime-local" id="startDate">
-                        <input type="datetime-local" id="endDate">
-
-                        <button onclick="reportsManager.applyFilters()"><i class="fas fa-filter"></i> Aplicar</button>
-                        <button onclick="reportsManager.clearFilters()"><i class="fas fa-times"></i> Limpar</button>
-                    </div>
-                </div>
-
-        <!-- Estatísticas Gerais -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total de Leituras</h3>
-                <div class="value" id="totalReadings">-</div>
-            </div>
-            <div class="stat-card">
-                <h3>Latência Média</h3>
-                <div class="value" id="avgLatency">-</div>
-                <span class="unit">ms</span>
-            </div>
-            <div class="stat-card">
-                <h3>RMS Médio</h3>
-                <div class="value" id="avgPowerQuality">-</div>
-                <span class="unit">A</span>
-            </div>
-        </div>
-
-                <!-- Dados Síncronos -->
-                <div class="readings-section">
-                    <h2>📈 Leituras Recentes</h2>
-                    <div id="readingsTableContainer">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <p>Carregando leituras...</p>
+                <!-- KPI Cards do Braço -->
+                <section class="kpi-section">
+                    <div class="kpi-card arm-load-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Carga</span>
+                            <i class="fas fa-weight-hanging"></i>
                         </div>
+                        <div class="kpi-value"><span id="armLoadKPI">--</span> kg</div>
                     </div>
-                </div>
+
+                    <div class="kpi-card arm-energy-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Energia</span>
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="kpi-value"><span id="armEnergyKPI">--</span> W</div>
+                    </div>
+
+                    <div class="kpi-card arm-efficiency-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Eficiência</span>
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="kpi-value"><span id="armEfficiencyKPI">--</span> W/kg</div>
+                    </div>
+
+                    <div class="kpi-card arm-status-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Status</span>
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="kpi-value" style="font-size: 1.5rem;"><span id="armStatusKPI">Aguardando</span></div>
+                    </div>
+                </section>
+
+                <!-- Stats Card -->
+                <section class="dashboard-grid">
+                    <div class="stats-card">
+                        <div class="stats-header">
+                            <div class="stats-percentage" id="armHealth">0%</div>
+                        </div>
+                        <div class="stats-details">
+                            <p>Braço Online</p>
+                            <p>Sensores Ativos</p>
+                            <p id="lastArmDataReceived">Aguardando dados...</p>
+                        </div>
+                        <button class="check-now-btn" onclick="location.reload()">Atualizar</button>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
 
     <script>
-        class ReportsManager {
+        // Função de logout
+        async function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = '/login.html';
+        }
+
+        // Dashboard do Braço Robótico
+        class ArmDashboard {
             constructor() {
-                this.currentReadingType = '';
-                this.allReadings = [];
+                this.ws = null;
+                this.armData = { carga_kg: 0, energia: 0 };
                 this.init();
             }
 
-            async init() {
-                await this.checkAuth();
-                await this.loadData();
-                this.setupEventListeners();
+            init() {
+                this.connectToWebSocket();
+                this.startInternetMonitoring();
             }
 
-            async checkAuth() {
-                try {
-                    const response = await fetch('/api/auth/check', {
-                        credentials: 'include'
-                    });
-                    if (!response.ok) {
-                        window.location.href = '/login.html';
-                    }
-                } catch (error) {
-                    console.error('Erro ao verificar autenticação:', error);
-                    window.location.href = '/login.html';
-                }
-            }
-
-            async loadData() {
-                try {
-                    // Carregar dados da API externa
-                    const apiSincronoResponse = await fetch('/apisincrono');
-                    const apiSincronoData = await apiSincronoResponse.json();
-                    
-                    const mediaMsResponse = await fetch('/apisincronomedia1');
-                    const mediaMs = await mediaMsResponse.json();
-                    
-                    const mediaRmsResponse = await fetch('/apisincronomedia0');
-                    const mediaRms = await mediaRmsResponse.json();
-
-                    // Transformar dados da API para o formato esperado
-                    this.allReadings = apiSincronoData.map(item => ({
-                        timestamp: item.horaEvento,
-                        type: item.unidade === 'ms' ? 'latency' : 'rms',
-                        value: item.valorEvento,
-                        unit: item.unidade
-                    }));
-
-                    // Carregar eventos críticos (mantém os dados internos)
-                    const eventsResponse = await fetch('/api/events/critical', {
-                        credentials: 'include'
-                    });
-                    const eventsData = await eventsResponse.json();
-                    this.allEvents = eventsData.data || [];
-
-                    // Criar objeto de médias
-                    const averages = {
-                        latency: {
-                            average: parseFloat(mediaMs)
-                        },
-                        rms: {
-                            average: parseFloat(mediaRms)
-                        }
-                    };
-
-                    this.updateStats(averages);
-                    this.renderReadings();
-                } catch (error) {
-                    console.error('Erro ao carregar dados:', error);
-                }
-            }
-
-            updateStats(averages) {
-                document.getElementById('totalReadings').textContent = this.allReadings.length;
-                document.getElementById('avgLatency').textContent = 
-                    averages.latency?.average?.toFixed(2) || '-';
-                document.getElementById('avgPowerQuality').textContent = 
-                    averages.rms?.average?.toFixed(2) || '-';
-            }
-
-            renderReadings() {
-                const container = document.getElementById('readingsTableContainer');
+            connectToWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.host;
+                const wsUrl = `${protocol}//${host}`;
                 
-                let filteredReadings = this.allReadings;
-                if (this.currentReadingType) {
-                    filteredReadings = this.allReadings.filter(r => r.type === this.currentReadingType);
-                }
-
-                if (filteredReadings.length === 0) {
-                    container.innerHTML = '<div class="no-data"><i class="fas fa-chart-line"></i><p>Nenhuma leitura encontrada</p></div>';
-                    return;
-                }
-
-                const tableHTML = `
-                    <table class="events-table">
-                        <thead>
-                            <tr>
-                                <th><i class="far fa-clock"></i> Data/Hora</th>
-                                <th><i class="fas fa-tag"></i> Tipo</th>
-                                <th><i class="fas fa-chart-bar"></i> Valor</th>
-                                <th><i class="fas fa-ruler"></i> Unidade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${filteredReadings.slice(-100).reverse().map(reading => `
-                                <tr>
-                                    <td>${new Date(reading.timestamp).toLocaleString('pt-BR')}</td>
-                                    <td>${this.getReadingTypeLabel(reading.type)}</td>
-                                    <td><strong>${reading.value}</strong></td>
-                                    <td>${reading.unit}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = tableHTML;
-            }
-
-            getReadingTypeLabel(type) {
-                const labels = {
-                    latency: 'Latência',
-                    rms: 'RMS'
+                console.log('🔗 Conectando WebSocket em:', wsUrl);
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('🔌 Conectado ao WebSocket');
+                    this.updateConnectionStatus(true);
                 };
-                return labels[type] || type;
-            }
 
-            applyFilters() {
-                this.currentReadingType = document.getElementById('readingTypeFilter').value;
-                this.renderReadings();
-            }
+                this.ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        console.log('📩 Mensagem:', msg);
 
-            clearFilters() {
-                document.getElementById('readingTypeFilter').value = '';
-                document.getElementById('startDate').value = '';
-                document.getElementById('endDate').value = '';
-                this.currentReadingType = '';
-                this.renderReadings();
-            }
-
-            setupEventListeners() {
-                // Auto-refresh a cada 30 segundos
-                setInterval(() => this.loadData(), 30000);
-                
-                // Mobile menu toggle
-                const menuToggle = document.querySelector('.menu-toggle');
-                const sidebar = document.querySelector('.sidebar');
-                
-                if (menuToggle && sidebar) {
-                    // Criar overlay para mobile
-                    let overlay = document.querySelector('.sidebar-overlay');
-                    if (!overlay) {
-                        overlay = document.createElement('div');
-                        overlay.className = 'sidebar-overlay';
-                        document.querySelector('.dashboard-layout').appendChild(overlay);
-                    }
-
-                    // Toggle sidebar
-                    menuToggle.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        sidebar.classList.toggle('open');
-                        overlay.classList.toggle('active');
-                        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-                    });
-
-                    // Fechar ao clicar no overlay
-                    overlay.addEventListener('click', () => {
-                        sidebar.classList.remove('open');
-                        overlay.classList.remove('active');
-                        document.body.style.overflow = '';
-                    });
-
-                    // Fechar ao clicar em um item do menu
-                    const navItems = sidebar.querySelectorAll('.nav-item');
-                    navItems.forEach(item => {
-                        item.addEventListener('click', () => {
-                            if (window.innerWidth <= 768) {
-                                sidebar.classList.remove('open');
-                                overlay.classList.remove('active');
-                                document.body.style.overflow = '';
-                            }
-                        });
-                    });
-
-                    // Fechar ao redimensionar para desktop
-                    window.addEventListener('resize', () => {
-                        if (window.innerWidth > 768) {
-                            sidebar.classList.remove('open');
-                            overlay.classList.remove('active');
-                            document.body.style.overflow = '';
+                        if (msg.topic && msg.topic.includes('arm/data')) {
+                            const armData = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;
+                            console.log('🦾 Dados do braço:', armData);
+                            this.updateArmKPIs(armData);
                         }
-                    });
+
+                        if (msg.type === 'mqtt_status') {
+                            this.updateMQTTStatus(msg.connected);
+                        }
+                    } catch (error) {
+                        console.error('Erro:', error);
+                    }
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('❌ Erro WebSocket:', error);
+                    this.updateConnectionStatus(false);
+                };
+
+                this.ws.onclose = () => {
+                    console.log('🔌 Desconectado. Reconectando em 3s...');
+                    this.updateConnectionStatus(false);
+                    setTimeout(() => this.connectToWebSocket(), 3000);
+                };
+            }
+
+            updateArmKPIs(data) {
+                const loadKPI = document.getElementById('armLoadKPI');
+                if (loadKPI && data.carga_kg !== undefined) {
+                    loadKPI.textContent = data.carga_kg.toFixed(1);
+                }
+
+                const energyKPI = document.getElementById('armEnergyKPI');
+                if (energyKPI && data.energia !== undefined) {
+                    energyKPI.textContent = data.energia.toFixed(2);
+                }
+
+                const efficiencyKPI = document.getElementById('armEfficiencyKPI');
+                if (efficiencyKPI && data.carga_kg > 0 && data.energia !== undefined) {
+                    const efficiency = data.energia / data.carga_kg;
+                    efficiencyKPI.textContent = efficiency.toFixed(2);
+                }
+
+                const statusKPI = document.getElementById('armStatusKPI');
+                if (statusKPI) {
+                    if (data.carga_kg > 0) {
+                        statusKPI.textContent = 'Operando';
+                        statusKPI.style.color = '#27ae60';
+                    } else {
+                        statusKPI.textContent = 'Inativo';
+                        statusKPI.style.color = '#95a5a6';
+                    }
+                }
+
+                const healthElement = document.getElementById('armHealth');
+                if (healthElement) {
+                    const health = data.energia > 0 && data.carga_kg >= 0 ? 100 : 0;
+                    healthElement.textContent = `${health}%`;
+                }
+
+                const lastDataElement = document.getElementById('lastArmDataReceived');
+                if (lastDataElement) {
+                    lastDataElement.textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')}`;
+                    lastDataElement.style.color = '#27ae60';
+                }
+
+                this.armData = data;
+                console.log('🦾 KPIs atualizados:', data);
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.className = 'connection-status connected';
+                        statusElement.innerHTML = '<i class="fas fa-wifi"></i><span>Conectado</span>';
+                    } else {
+                        statusElement.className = 'connection-status disconnected';
+                        statusElement.innerHTML = '<i class="fas fa-wifi"></i><span>Desconectado</span>';
+                    }
                 }
             }
-        }
 
-        const reportsManager = new ReportsManager();
+            updateMQTTStatus(connected) {
+                const statusElement = document.getElementById('mqttStatus');
+                if (statusElement) {
+                    if (connected) {
+                        statusElement.className = 'connection-status connected';
+                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>MQTT Online</span>';
+                    } else {
+                        statusElement.className = 'connection-status disconnected';
+                        statusElement.innerHTML = '<i class="fas fa-database"></i><span>MQTT Offline</span>';
+                    }
+                }
+            }
 
-        // Função de logout
-        async function logout() {
-            try {
-                await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-                window.location.href = '/login.html';
-            } catch (error) {
-                console.error('Erro ao fazer logout:', error);
-                window.location.href = '/login.html';
+            startInternetMonitoring() {
+                setInterval(() => {
+                    this.updateConnectionStatus(this.ws && this.ws.readyState === WebSocket.OPEN);
+                }, 5000);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.armDashboard = new ArmDashboard();
+        });
     </script>
 </body>
 </html>

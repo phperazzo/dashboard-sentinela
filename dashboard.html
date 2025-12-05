@@ -8,7 +8,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Dashboard Sentinela</title>
+    <title>Carro Aspirador</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -38,16 +38,16 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-item active">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
+                        <i class="fas fa-car"></i>
+                        <span>Carro Aspirador</span>
                     </li>
                     <li class="nav-item" onclick="window.location.href='/reports.html'">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Relatórios</span>
+                        <i class="fas fa-robot"></i>
+                        <span>Braço Robótico</span>
                     </li>
                     <li class="nav-item" onclick="window.location.href='/settings.html'">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
+                        <i class="fas fa-drone"></i>
+                        <span>Drone</span>
                     </li>
                     <li class="nav-item" onclick="logout()">
                         <i class="fas fa-sign-out-alt"></i>
@@ -63,7 +63,7 @@
                 <button class="menu-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1>Dashboard Sentinela</h1>
+                <h1>Carro Aspirador</h1>
                 <div class="header-actions">
                     <div class="connection-status" id="connectionStatus">
                         <i class="fas fa-wifi"></i>
@@ -79,62 +79,41 @@
             <div class="content-wrapper">
                 <!-- KPI Cards -->
                 <section class="kpi-section">
-                    <div class="kpi-card temperature-status">
+                    <div class="kpi-card cycle-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">RMS (Corrente)</span>
-                            <i class="fas fa-bolt"></i>
+                            <span class="kpi-label">Ciclo Atual</span>
+                            <i class="fas fa-sync-alt"></i>
                         </div>
-                        <div class="kpi-value"><span id="rmsKPI">--</span> V</div>
+                        <div class="kpi-value"><span id="cycleKPI">--</span></div>
                     </div>
 
-                    <div class="kpi-card network-status">
+                    <div class="kpi-card coverage-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">Latência (Rede)</span>
-                            <i class="fas fa-wifi"></i>
+                            <span class="kpi-label">Cobertura</span>
+                            <i class="fas fa-map-marked-alt"></i>
                         </div>
-                        <div class="kpi-value"><span id="latencyKPI">--</span> ms</div>
+                        <div class="kpi-value"><span id="coverageKPI">--</span> %</div>
                     </div>
 
-                    <div class="kpi-card humidity-status">
+                    <div class="kpi-card efficiency-status">
                         <div class="kpi-header">
-                            <span class="kpi-label">Status Internet</span>
-                            <i class="fas fa-globe"></i>
+                            <span class="kpi-label">Eficiência</span>
+                            <i class="fas fa-chart-line"></i>
                         </div>
-                        <div class="kpi-value" id="humidityValue">Offline</div>
+                        <div class="kpi-value"><span id="efficiencyKPI">--</span> %</div>
+                    </div>
+
+                    <div class="kpi-card energy-status">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Energia</span>
+                            <i class="fas fa-battery-three-quarters"></i>
+                        </div>
+                        <div class="kpi-value"><span id="energyKPI">--</span> W</div>
                     </div>
                 </section>
 
-                <!-- Charts and Metrics -->
+                <!-- Stats Card -->
                 <section class="dashboard-grid">
-                    <div class="chart-card main-chart">
-                        <div class="chart-header">
-                            <h3>⚡ Monitoramento em Tempo Real</h3>
-                            <div class="chart-controls">
-                                <span class="period-label">Tempo Real</span>
-                                <select class="period-select">
-                                    <option>Última hora</option>
-                                    <option>Últimas 6 horas</option>
-                                    <option>Últimas 24 horas</option>
-                                </select>
-                            </div>
-                        </div>
-                        <canvas id="mainChart"></canvas>
-                    </div>
-
-                    <div class="chart-card area-chart">
-                        <div class="chart-header">
-                            <h3>🌐 Status do Sistema</h3>
-                        </div>
-                        <canvas id="tempHumidityChart"></canvas>
-                    </div>
-
-                    <div class="chart-card environment-chart">
-                        <div class="chart-header">
-                            <h3>📊 Análise de Dados</h3>
-                        </div>
-                        <canvas id="environmentChart"></canvas>
-                    </div>
-
                     <div class="stats-card">
                         <div class="stats-header">
                             <div class="stats-percentage" id="systemHealth">0%</div>
